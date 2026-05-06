@@ -1,0 +1,2443 @@
+#!/bin/bash
+echo "🚀 ContratoExpress v3.3 - COMPLETO Y CORREGIDO..."
+
+mkdir -p ContratoExpress/{templates,static,uploads}
+cd ContratoExpress
+
+cat > requirements.txt << 'EOF'
+Flask==3.0.3
+Werkzeug==3.0.3
+Flask-WTF==1.2.1
+EOF
+
+cat > .gitignore << 'EOF'
+__pycache__/
+*.pyc
+*.db
+uploads/
+.env
+venv/
+.DS_Store
+*.egg-info/
+EOF
+
+cat > rules.py << 'EOF'
+import sqlite3, re
+from datetime import datetime, date
+from werkzeug.security import generate_password_hash, check_password_hash
+
+DATABASE = 'contracts.db'
+
+def get_db():
+    conn = sqlite3.connect(DATABASE)
+    conn.execute("PRAGMA foreign_keys = ON")
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def validate_contract(data):
+    errors = []
+    if len(data.get('provider_name', '')) < 3:
+        errors.append("Nombre del prestador muy corto.")
+    if len(data.get('client_name', '')) < 3:
+        errors.append("Nombre del cliente muy corto.")
+    if len(data.get('city_location', '')) < 3:
+        errors.append("Falta la ciudad de expedición.")
+    phone_p = data.get('provider_phone', '').replace(" ", "").replace("-", "")
+    phone_c = data.get('client_phone', '').replace(" ", "").replace("-", "")
+    if not phone_p.isdigit() or len(phone_p) < 7:
+        errors.append("Teléfono del prestador inválido (mínimo 7 dígitos).")
+    if not phone_c.isdigit() or len(phone_c) < 7:
+        errors.append("Teléfono del cliente inválido (mínimo 7 dígitos).")
+    if len(data.get('service_desc', '')) < 5:
+        errors.append("Descripción muy corta.")
+    email = data.get('email_client', '')
+    if email and not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+        errors.append("Email del cliente inválido.")
+    try:
+        total = float(data.get('total_amount', 0))
+        if total <= 0:
+            errors.append("El monto debe ser mayor a 0.")
+        if data.get('payment_structure') == 'advance':
+            advance = float(data.get('advance_amount', 0))
+            remaining = float(data.get('remaining_amount', 0))
+            if abs((advance + remaining) - total) > 0.01:
+                errors.append("La suma del anticipo y resto no coincide con el total.")
+    except (ValueError, TypeError):
+        errors.append("Error en los montos: asegúrate de usar números válidos.")
+    try:
+        deadline_str = data.get('deadline')
+        if not deadline_str:
+            errors.append("Falta la fecha límite.")
+        else:
+            deadline = datetime.strptime(deadline_str, '%Y-%m-%d').date()
+            if deadline < date.today():
+                errors.append("La fecha límite no puede ser en el pasado.")
+    except ValueError:
+        errors.append("Formato de fecha inválido.")
+    if data.get('has_materials') == 'on' and not data.get('materials_details'):
+        errors.append("Debe detallar los materiales si los incluye.")
+    if data.get('payment_method') == 'transfer' and not data.get('bank_details'):
+        errors.append("Faltan datos bancarios.")
+    if data.get('include_signatures') == 'on':
+        if not data.get('sig_provider_name', '').strip():
+            errors.append("Falta el nombre para la firma del prestador.")
+        if not data.get('sig_client_name', '').strip():
+            errors.append("Falta el nombre para la firma del cliente.")
+    return errors
+
+def register_user(username, password):
+    conn = get_db()
+    cursor = conn.cursor()
+    existing = cursor.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
+    if existing:
+        conn.close()
+        return False, "El usuario ya existe."
+    password_hash = generate_password_hash(password)
+    try:
+        cursor.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", (username, password_hash))
+        conn.commit()
+        conn.close()
+        return True, "Usuario creado."
+    except Exception as e:
+        conn.close()
+        return False, str(e)
+
+def login_user(username, password):
+    conn = get_db()
+    cursor = conn.cursor()
+    user = cursor.execute("SELECT id, password_hash FROM users WHERE username = ?", (username,)).fetchone()
+    conn.close()
+    if user and check_password_hash(user['password_hash'], password):
+        return user['id']
+    return None
+EOF
+
+cat > app.py << 'EOF'
+from flask import Flask, render_template, request, redirect, session, flash, url_for, send_from_directory, abort
+from flask_wtf.csrf import CSRFProtect
+from rules import get_db, validate_contract, register_user, login_user
+import os, time, functools, sqlite3
+
+app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY', 'cs50-dev-secret-key-change-in-prod')
+app.config['WTF_CSRF_SSL_STRICT'] = False
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+csrf = CSRFProtect(app)
+
+def init_db():
+    conn = sqlite3.connect('contracts.db')
+    cursor = conn.cursor()
+    cursor.execute('PRAGMA foreign_keys = ON')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS contracts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            city_location TEXT NOT NULL,
+            provider_name TEXT NOT NULL,
+            provider_phone TEXT NOT NULL,
+            provider_logo TEXT,
+            client_name TEXT NOT NULL,
+            client_phone TEXT NOT NULL,
+            service_type TEXT NOT NULL,
+            service_title TEXT NOT NULL,
+            service_desc TEXT NOT NULL,
+            has_materials BOOLEAN,
+            materials_details TEXT,
+            is_quote_pending BOOLEAN,
+            payment_structure TEXT NOT NULL,
+            payment_timing TEXT NOT NULL,
+            total_amount REAL NOT NULL,
+            advance_amount REAL,
+            remaining_amount REAL,
+            payment_method TEXT NOT NULL,
+            bank_details TEXT,
+            crypto_wallet TEXT,
+            other_method TEXT,
+            deadline DATE NOT NULL,
+            penalty_rate REAL,
+            rfc_provider TEXT,
+            rfc_client TEXT,
+            address_provider TEXT,
+            address_client TEXT,
+            email_client TEXT,
+            witness_name TEXT,
+            include_confidentiality BOOLEAN,
+            include_signatures BOOLEAN,
+            sig_provider_name TEXT,
+            sig_client_name TEXT,
+            sig_witness_name TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+init_db()
+
+def login_required(f):
+    @functools.wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.after_request
+def add_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    return response
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def validate_image_mime(file):
+    file.seek(0)
+    header = file.read(8)
+    file.seek(0)
+    return (header.startswith(b'\x89PNG\r\n\x1a\n') or 
+            header.startswith(b'\xff\xd8\xff') or 
+            header.startswith(b'GIF87a') or header.startswith(b'GIF89a'))
+
+@app.route('/')
+def index():
+    if 'user_id' in session:
+        return render_template('dashboard.html')
+    return redirect(url_for('login'))
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
+        confirm = request.form.get('confirm', '')
+        
+        if not username or len(username) < 3:
+            flash("Usuario muy corto (mínimo 3 caracteres).", "error")
+            return redirect(url_for('register'))
+        if not password or len(password) < 6:
+            flash("Contraseña débil (mínimo 6 caracteres).", "error")
+            return redirect(url_for('register'))
+        if password != confirm:
+            flash("Las contraseñas no coinciden.", "error")
+            return redirect(url_for('register'))
+        
+        try:
+            success, msg = register_user(username, password)
+            if success:
+                flash("Cuenta creada. Inicie sesión.", "success")
+                return redirect(url_for('login'))
+            else:
+                flash(msg, "error")
+        except Exception as e:
+            flash("Error interno al registrar.", "error")
+            app.logger.error(f"Register error: {e}")
+        
+        return redirect(url_for('register'))
+    
+    return render_template('register.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
+        
+        try:
+            user_id = login_user(username, password)
+            if user_id:
+                session.clear()
+                session['user_id'] = user_id
+                session['username'] = username
+                return redirect(url_for('index'))
+            else:
+                flash("Credenciales inválidas.", "error")
+        except Exception as e:
+            flash("Error interno al iniciar sesión.", "error")
+            app.logger.error(f"Login error: {e}")
+    
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+@app.route('/delete_account', methods=['POST'])
+@login_required
+def delete_account():
+    conn = get_db()
+    cursor = conn.cursor()
+    logos = [row[0] for row in cursor.execute("SELECT provider_logo FROM contracts WHERE user_id = ? AND provider_logo IS NOT NULL", (session['user_id'],)).fetchall()]
+    cursor.execute("DELETE FROM contracts WHERE user_id = ?", (session['user_id'],))
+    cursor.execute("DELETE FROM users WHERE id = ?", (session['user_id'],))
+    conn.commit()
+    conn.close()
+    for logo in logos:
+        filepath = os.path.join(UPLOAD_FOLDER, logo)
+        if os.path.exists(filepath):
+            try:
+                os.remove(filepath)
+            except OSError:
+                pass
+    session.clear()
+    flash("Cuenta eliminada.", "warning")
+    return redirect(url_for('register'))
+
+@app.route('/new_contract', methods=['GET', 'POST'])
+@login_required
+def new_contract():
+    if request.method == 'POST':
+        errors = validate_contract(request.form.to_dict(flat=True))
+        
+        logo_filename = None
+        if 'logo' in request.files:
+            file = request.files['logo']
+            if file and file.filename != '' and allowed_file(file.filename):
+                if validate_image_mime(file):
+                    ext = file.filename.rsplit('.', 1)[1].lower()
+                    logo_filename = f"logo_{session['user_id']}_{int(time.time())}.{ext}"
+                    file.save(os.path.join(app.config['UPLOAD_FOLDER'], logo_filename))
+                else:
+                    errors.append("El archivo no es una imagen válida.")
+            elif file and file.filename != '':
+                errors.append("Solo se permiten PNG/JPG.")
+
+        if errors:
+            for e in errors:
+                flash(e, "error")
+            return render_template('form.html', form_data=request.form.to_dict(flat=True))
+
+        if request.form.get('service_type') == 'Otros':
+            service_title = request.form.get('service_title_custom', '').strip()
+        else:
+            service_title = request.form.get('service_title_std', '').strip()
+        
+        if not service_title:
+            flash("El título del servicio es obligatorio.", "error")
+            return render_template('form.html', form_data=request.form.to_dict(flat=True))
+
+        payment_structure = request.form.get('payment_structure')
+        try:
+            total = float(request.form.get('total_amount') or 0)
+        except (ValueError, TypeError):
+            total = 0.0
+        
+        advance = 0.0
+        remaining = 0.0
+        if payment_structure == 'advance':
+            try:
+                advance = float(request.form.get('advance_amount') or 0)
+            except (ValueError, TypeError):
+                advance = 0.0
+            remaining = total - advance
+
+        penalty = 0.0
+        if request.form.get('apply_penalty') == '1' and request.form.get('payment_timing') == 'after':
+            try:
+                penalty = float(request.form.get('penalty_rate') or 0)
+            except (ValueError, TypeError):
+                penalty = 0.0
+
+        conn = get_db()
+        cursor = conn.cursor()
+        try:
+            # ✅ CORREGIDO: 35 columnas, 35 valores exactos
+            cursor.execute('''
+                INSERT INTO contracts (
+                    user_id, city_location, provider_name, provider_phone, provider_logo,
+                    client_name, client_phone, service_type, service_title, service_desc,
+                    has_materials, materials_details, is_quote_pending,
+                    payment_structure, payment_timing, total_amount, advance_amount, remaining_amount,
+                    payment_method, bank_details, crypto_wallet, other_method, deadline, penalty_rate,
+                    rfc_provider, rfc_client, address_provider, address_client, email_client,
+                    witness_name, include_confidentiality, include_signatures,
+                    sig_provider_name, sig_client_name, sig_witness_name
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                session['user_id'], request.form.get('city_location'),
+                request.form.get('provider_name'), request.form.get('provider_phone'), logo_filename,
+                request.form.get('client_name'), request.form.get('client_phone'),
+                request.form.get('service_type'), service_title, request.form.get('service_desc'),
+                1 if request.form.get('has_materials') else 0, request.form.get('materials_details'),
+                1 if request.form.get('is_quote_pending') else 0,
+                payment_structure, request.form.get('payment_timing'), total, advance, remaining,
+                request.form.get('payment_method'), request.form.get('bank_details'),
+                request.form.get('crypto_wallet'), request.form.get('other_method'),
+                request.form.get('deadline'), penalty,
+                request.form.get('rfc_provider'), request.form.get('rfc_client'),
+                request.form.get('address_provider'), request.form.get('address_client'),
+                request.form.get('email_client'), request.form.get('witness_name'),
+                1 if request.form.get('include_confidentiality') else 0,
+                1 if request.form.get('include_signatures') else 0,
+                request.form.get('sig_provider_name'), request.form.get('sig_client_name'),
+                request.form.get('sig_witness_name')
+            ))
+            conn.commit()
+            contract_id = cursor.lastrowid
+            conn.close()
+            flash("Contrato generado con éxito.", "success")
+            return redirect(url_for('view_contract', contract_id=contract_id))
+        except Exception as e:
+            conn.close()
+            app.logger.error(f"Error al guardar contrato: {e}")
+            flash("Error interno al guardar. Intente nuevamente.", "error")
+            return render_template('form.html', form_data=request.form.to_dict(flat=True))
+    
+    return render_template('form.html', form_data=None)
+
+@app.route('/history')
+@login_required
+def history():
+    conn = get_db()
+    contracts = conn.execute("SELECT * FROM contracts WHERE user_id = ? ORDER BY created_at DESC", (session['user_id'],)).fetchall()
+    conn.close()
+    return render_template('history.html', contracts=contracts)
+
+@app.route('/view/<int:contract_id>')
+@login_required
+def view_contract(contract_id):
+    conn = get_db()
+    contract = conn.execute("SELECT * FROM contracts WHERE id = ? AND user_id = ?", (contract_id, session['user_id'])).fetchone()
+    conn.close()
+    if not contract:
+        flash("Contrato no encontrado.", "error")
+        return redirect(url_for('history'))
+    return render_template('pdf_view.html', contract=contract)
+
+@app.route('/delete/<int:contract_id>', methods=['POST'])
+@login_required
+def delete_contract(contract_id):
+    conn = get_db()
+    contract = conn.execute("SELECT provider_logo FROM contracts WHERE id = ? AND user_id = ?", (contract_id, session['user_id'])).fetchone()
+    if contract:
+        if contract['provider_logo']:
+            filepath = os.path.join(UPLOAD_FOLDER, contract['provider_logo'])
+            if os.path.exists(filepath):
+                try:
+                    os.remove(filepath)
+                except OSError:
+                    pass
+        conn.execute("DELETE FROM contracts WHERE id = ?", (contract_id,))
+        conn.commit()
+        flash("Contrato eliminado.", "warning")
+    conn.close()
+    return redirect(url_for('history'))
+
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    if '..' in filename or filename.startswith('/'):
+        abort(403)
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+EOF
+
+cat > templates/base.html << 'EOF'
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}ContratoExpress{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    {% if session.user_id %}
+    <nav class="navbar">
+        <div class="nav-brand">
+            <i class="fas fa-file-contract"></i>
+            <span>ContratoExpress</span>
+        </div>
+        <div class="nav-links">
+            <a href="{{ url_for('index') }}" class="{% if request.endpoint == 'index' %}active{% endif %}"><i class="fas fa-home"></i> Inicio</a>
+            <a href="{{ url_for('new_contract') }}" class="{% if request.endpoint == 'new_contract' %}active{% endif %}"><i class="fas fa-plus-circle"></i> Nuevo Contrato</a>
+            <a href="{{ url_for('history') }}" class="{% if request.endpoint == 'history' %}active{% endif %}"><i class="fas fa-history"></i> Historial</a>
+            <div class="nav-user">
+                <span><i class="fas fa-user"></i> {{ session.username }}</span>
+                <a href="{{ url_for('logout') }}" class="logout-btn"><i class="fas fa-sign-out-alt"></i></a>
+            </div>
+        </div>
+    </nav>
+    <main class="main-content">
+    {% else %}
+    <main class="auth-container">
+    {% endif %}
+        {% block content %}{% endblock %}
+    {% if session.user_id %}</main>{% else %}</main>{% endif %}
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
+EOF
+
+cat > templates/login.html << 'EOF'
+{% extends "base.html" %}
+{% block title %}Iniciar Sesión - ContratoExpress{% endblock %}
+{% block content %}
+<div class="auth-card">
+    <div class="auth-header">
+        <div class="logo-icon">
+            <i class="fas fa-file-contract"></i>
+        </div>
+        <h1>Bienvenido de vuelta</h1>
+        <p class="subtitle">Accede a tu cuenta para gestionar contratos</p>
+    </div>
+    <form method="POST" class="auth-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-group">
+            <label for="username"><i class="fas fa-user"></i> Usuario</label>
+            <input type="text" id="username" name="username" placeholder="Ingresa tu usuario" required autofocus>
+        </div>
+        <div class="form-group">
+            <label for="password"><i class="fas fa-lock"></i> Contraseña</label>
+            <input type="password" id="password" name="password" placeholder="Ingresa tu contraseña" required>
+        </div>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="alerts-container">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            <i class="fas {% if category == 'error' %}fa-exclamation-circle{% elif category == 'success' %}fa-check-circle{% else %}fa-info-circle{% endif %}"></i>
+                            <span>{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        <button type="submit" class="btn-primary btn-full">
+            <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
+        </button>
+    </form>
+    <div class="auth-footer">
+        <p>¿No tienes cuenta? <a href="{{ url_for('register') }}">Regístrate aquí</a></p>
+        <button class="btn-help" onclick="showHelp()">
+            <i class="fas fa-question-circle"></i> ¿Qué es ContratoExpress?
+        </button>
+    </div>
+</div>
+<div id="helpModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeHelp()">&times;</span>
+        <div class="modal-header">
+            <i class="fas fa-lightbulb"></i>
+            <h2>¿Qué es ContratoExpress?</h2>
+        </div>
+        <div class="modal-body">
+            <p><strong>ContratoExpress</strong> es un generador de contratos profesionales diseñado para servicios simples y profesionales.</p>
+            <div class="feature-list">
+                <div class="feature-item">
+                    <i class="fas fa-bolt"></i>
+                    <div>
+                        <h4>Rápido y Sencillo</h4>
+                        <p>Crea contratos profesionales en minutos con solo unos clicks.</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-shield-alt"></i>
+                    <div>
+                        <h4>Legalmente Válido</h4>
+                        <p>Documentos con validez legal para proteger tus acuerdos.</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-handshake"></i>
+                    <div>
+                        <h4>Ideal para Acuerdos Verbales</h4>
+                        <p>Perfecto cuando todo se pacta de palabra y necesitas formalizarlo.</p>
+                    </div>
+                </div>
+            </div>
+            <p class="highlight">Ideal para: técnicos, electricistas, plomeros, tutores, freelancers y cualquier profesional que necesite documentar sus servicios.</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-primary" onclick="closeHelp()">Entendido</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+EOF
+
+cat > templates/register.html << 'EOF'
+{% extends "base.html" %}
+{% block title %}Crear Cuenta - ContratoExpress{% endblock %}
+{% block content %}
+<div class="auth-card">
+    <div class="auth-header">
+        <div class="logo-icon">
+            <i class="fas fa-file-contract"></i>
+        </div>
+        <h1>Crea tu cuenta</h1>
+        <p class="subtitle">Comienza a generar contratos profesionales</p>
+    </div>
+    <form method="POST" class="auth-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-group">
+            <label for="username"><i class="fas fa-user"></i> Nombre de Usuario</label>
+            <input type="text" id="username" name="username" placeholder="Elige un usuario (mínimo 3 caracteres)" required minlength="3">
+        </div>
+        <div class="form-group">
+            <label for="password"><i class="fas fa-lock"></i> Contraseña</label>
+            <input type="password" id="password" name="password" placeholder="Mínimo 6 caracteres" required minlength="6">
+        </div>
+        <div class="form-group">
+            <label for="confirm"><i class="fas fa-lock"></i> Confirmar Contraseña</label>
+            <input type="password" id="confirm" name="confirm" placeholder="Repite tu contraseña" required>
+        </div>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="alerts-container">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            <i class="fas {% if category == 'error' %}fa-exclamation-circle{% elif category == 'success' %}fa-check-circle{% else %}fa-info-circle{% endif %}"></i>
+                            <span>{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        <button type="submit" class="btn-primary btn-full">
+            <i class="fas fa-user-plus"></i> Crear Cuenta
+        </button>
+    </form>
+    <div class="auth-footer">
+        <p>¿Ya tienes cuenta? <a href="{{ url_for('login') }}">Inicia sesión</a></p>
+        <button class="btn-help" onclick="showHelp()">
+            <i class="fas fa-question-circle"></i> ¿Qué es ContratoExpress?
+        </button>
+    </div>
+</div>
+<div id="helpModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeHelp()">&times;</span>
+        <div class="modal-header">
+            <i class="fas fa-lightbulb"></i>
+            <h2>¿Qué es ContratoExpress?</h2>
+        </div>
+        <div class="modal-body">
+            <p><strong>ContratoExpress</strong> es un generador de contratos profesionales diseñado para servicios simples y profesionales.</p>
+            <div class="feature-list">
+                <div class="feature-item">
+                    <i class="fas fa-bolt"></i>
+                    <div>
+                        <h4>Rápido y Sencillo</h4>
+                        <p>Crea contratos profesionales en minutos con solo unos clicks.</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-shield-alt"></i>
+                    <div>
+                        <h4>Legalmente Válido</h4>
+                        <p>Documentos con validez legal para proteger tus acuerdos.</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-handshake"></i>
+                    <div>
+                        <h4>Ideal para Acuerdos Verbales</h4>
+                        <p>Perfecto cuando todo se pacta de palabra y necesitas formalizarlo.</p>
+                    </div>
+                </div>
+            </div>
+            <p class="highlight">Ideal para: técnicos, electricistas, plomeros, tutores, freelancers y cualquier profesional que necesite documentar sus servicios.</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-primary" onclick="closeHelp()">Entendido</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+EOF
+
+cat > templates/dashboard.html << 'EOF'
+{% extends "base.html" %}
+{% block title %}Dashboard - ContratoExpress{% endblock %}
+{% block content %}
+<div class="dashboard">
+    <div class="welcome-section">
+        <h1>¡Hola, {{ session.username }}! 👋</h1>
+        <p>Bienvenido a <strong>ContratoExpress</strong>. Gestiona tus contratos de forma rápida y profesional.</p>
+    </div>
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon blue">
+                <i class="fas fa-file-contract"></i>
+            </div>
+            <div class="stat-info">
+                <h3>Contratos Activos</h3>
+                <p>Gestiona todos tus documentos</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green">
+                <i class="fas fa-bolt"></i>
+            </div>
+            <div class="stat-info">
+                <h4>Rápido</h4>
+                <p>Crea contratos en minutos</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon purple">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <div class="stat-info">
+                <h4>Seguro</h4>
+                <p>Tus datos están protegidos</p>
+            </div>
+        </div>
+    </div>
+    <div class="quick-actions">
+        <h2>Acciones Rápidas</h2>
+        <div class="action-grid">
+            <a href="{{ url_for('new_contract') }}" class="action-card primary">
+                <i class="fas fa-plus-circle"></i>
+                <h3>Nuevo Contrato</h3>
+                <p>Crea un contrato profesional desde cero</p>
+            </a>
+            <a href="{{ url_for('history') }}" class="action-card secondary">
+                <i class="fas fa-history"></i>
+                <h3>Ver Historial</h3>
+                <p>Consulta tus contratos anteriores</p>
+            </a>
+        </div>
+    </div>
+    <div class="account-settings">
+        <h2>Zona de Peligro</h2>
+        <div class="danger-zone">
+            <p>Eliminar tu cuenta es irreversible. Se borrarán todos tus contratos y datos.</p>
+            <form action="{{ url_for('delete_account') }}" method="POST" onsubmit="return confirm('¿ESTÁS SEGURO? Esta acción no se puede deshacer.');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn-danger">
+                    <i class="fas fa-trash-alt"></i> Eliminar Mi Cuenta
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+EOF
+
+cat > templates/form.html << 'EOF'
+{% extends "base.html" %}
+{% block title %}Nuevo Contrato - ContratoExpress{% endblock %}
+{% block content %}
+<div class="form-container">
+    <div class="form-header">
+        <h1><i class="fas fa-file-signature"></i> Generador de Contratos</h1>
+        <p>Completa los datos para generar tu contrato profesional</p>
+    </div>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="alerts-container">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        <i class="fas {% if category == 'error' %}fa-exclamation-circle{% elif category == 'success' %}fa-check-circle{% else %}fa-info-circle{% endif %}"></i>
+                        <span>{{ message }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+    <form method="POST" enctype="multipart/form-data" id="contractForm" class="contract-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <div class="form-section">
+            <h3><i class="fas fa-user-friends"></i> Datos Básicos</h3>
+            <div class="form-row grid-2">
+                <div class="form-group">
+                    <label for="provider_name">Prestador del Servicio (Tú)</label>
+                    <input type="text" id="provider_name" name="provider_name" value="{{ form_data.get('provider_name', '') if form_data else '' }}" placeholder="Nombre completo" required>
+                </div>
+                <div class="form-group">
+                    <label for="provider_phone">Teléfono</label>
+                    <input type="text" id="provider_phone" name="provider_phone" value="{{ form_data.get('provider_phone', '') if form_data else '' }}" placeholder="Mínimo 7 dígitos" pattern="[0-9]{7,}" required>
+                </div>
+            </div>
+            <div class="form-row grid-2">
+                <div class="form-group">
+                    <label for="client_name">Cliente</label>
+                    <input type="text" id="client_name" name="client_name" value="{{ form_data.get('client_name', '') if form_data else '' }}" placeholder="Nombre completo" required>
+                </div>
+                <div class="form-group">
+                    <label for="client_phone">Teléfono del Cliente</label>
+                    <input type="text" id="client_phone" name="client_phone" value="{{ form_data.get('client_phone', '') if form_data else '' }}" placeholder="Mínimo 7 dígitos" pattern="[0-9]{7,}" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="city_location">Ciudad de Expedición</label>
+                <input type="text" id="city_location" name="city_location" value="{{ form_data.get('city_location', '') if form_data else '' }}" placeholder="Ej: Ciudad de México, Guadalajara, Monterrey..." required>
+            </div>
+            <div class="form-group">
+                <label for="logo">Logo (Opcional)</label>
+                <div class="file-upload">
+                    <input type="file" id="logo" name="logo" accept="image/png, image/jpeg" onchange="previewLogo(this)">
+                    <img id="logoPreview" class="hidden" alt="Vista previa">
+                </div>
+            </div>
+        </div>
+        <div class="form-section">
+            <h3><i class="fas fa-briefcase"></i> Detalles del Servicio</h3>
+            <div class="form-group">
+                <label for="serviceType">Tipo de Servicio</label>
+                <select id="serviceType" name="service_type" onchange="toggleOtherService()">
+                    <option value="Soporte Técnico" {{ 'selected' if form_data and form_data.get('service_type') == 'Soporte Técnico' else '' }}>Soporte Técnico</option>
+                    <option value="Electricidad" {{ 'selected' if form_data and form_data.get('service_type') == 'Electricidad' else '' }}>Electricidad</option>
+                    <option value="Plomería" {{ 'selected' if form_data and form_data.get('service_type') == 'Plomería' else '' }}>Plomería</option>
+                    <option value="Enseñanza" {{ 'selected' if form_data and form_data.get('service_type') == 'Enseñanza' else '' }}>Enseñanza</option>
+                    <option value="Otros" {{ 'selected' if form_data and form_data.get('service_type') == 'Otros' else '' }}>Otro...</option>
+                </select>
+            </div>
+            <div class="form-group" id="customServiceGroup" style="display: {{ 'block' if form_data and form_data.get('service_type') == 'Otros' else 'none' }}">
+                <label for="customServiceInput">Especifique el servicio</label>
+                <input type="text" id="customServiceInput" name="service_title_custom" value="{{ form_data.get('service_title', '') if form_data else '' }}" placeholder="Ej: Instalación de aire acondicionado">
+            </div>
+            <div class="form-group" id="standardServiceGroup" style="display: {{ 'none' if form_data and form_data.get('service_type') == 'Otros' else 'block' }}">
+                <label for="standardServiceTitle">Título del Servicio</label>
+                <input type="text" id="standardServiceTitle" name="service_title_std" value="{{ form_data.get('service_title', '') if form_data and form_data.get('service_type') != 'Otros' else '' }}" placeholder="Ej: Mantenimiento de computadora">
+            </div>
+            <div class="form-group">
+                <label for="service_desc">Descripción Detallada</label>
+                <textarea id="service_desc" name="service_desc" rows="4" placeholder="Describe exactamente qué servicios realizarás..." required>{{ form_data.get('service_desc', '') if form_data else '' }}</textarea>
+            </div>
+            <div class="checkbox-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="hasMaterials" name="has_materials" onchange="toggleMaterials()" {{ 'checked' if form_data and form_data.get('has_materials') else '' }}>
+                    <span>¿Incluye materiales?</span>
+                </label>
+                <div id="materialsOptions" style="display: {{ 'block' if form_data and form_data.get('has_materials') else 'none' }}">
+                    <textarea name="materials_details" placeholder="Lista de materiales incluidos...">{{ form_data.get('materials_details', '') if form_data else '' }}</textarea>
+                </div>
+            </div>
+            <div class="checkbox-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" name="is_quote_pending" {{ 'checked' if form_data and form_data.get('is_quote_pending') else '' }}>
+                    <span>Cotización pendiente de aprobación</span>
+                </label>
+            </div>
+        </div>
+        <div class="form-section">
+            <h3><i class="fas fa-credit-card"></i> Pagos y Fechas</h3>
+            <div class="form-row grid-2">
+                <div class="form-group">
+                    <label for="payStructure">Estructura de Pago</label>
+                    <select id="payStructure" name="payment_structure" onchange="calcRemaining()">
+                        <option value="single" {{ 'selected' if form_data and form_data.get('payment_structure') == 'single' else '' }}>Pago Único</option>
+                        <option value="advance" {{ 'selected' if form_data and form_data.get('payment_structure') == 'advance' else '' }}>Anticipo + Resto</option>
+                        <option value="partial" {{ 'selected' if form_data and form_data.get('payment_structure') == 'partial' else '' }}>Pagos Parciales</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="payTiming">Momento del Pago</label>
+                    <select id="payTiming" name="payment_timing" onchange="togglePenalties()">
+                        <option value="before" {{ 'selected' if form_data and form_data.get('payment_timing') == 'before' else '' }}>Antes de iniciar</option>
+                        <option value="after" {{ 'selected' if form_data and form_data.get('payment_timing') == 'after' else '' }}>Al finalizar</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row grid-3">
+                <div class="form-group">
+                    <label for="totalAmount">Monto Total ($)</label>
+                    <input type="number" id="totalAmount" name="total_amount" step="0.01" value="{{ form_data.get('total_amount', '') if form_data else '' }}" oninput="calcRemaining()" required>
+                </div>
+                <div class="form-group" id="advanceDiv" style="display: {{ 'none' if not form_data or form_data.get('payment_structure') == 'single' else 'block' }}">
+                    <label for="advanceAmount">Anticipo ($)</label>
+                    <input type="number" id="advanceAmount" name="advance_amount" step="0.01" value="{{ form_data.get('advance_amount', '') if form_data else '' }}" oninput="calcRemaining()">
+                </div>
+                <div class="form-group" id="remainingDiv" style="display: {{ 'none' if not form_data or form_data.get('payment_structure') == 'single' else 'block' }}">
+                    <label for="remainingAmount">Resto ($)</label>
+                    <input type="number" id="remainingAmount" name="remaining_amount" step="0.01" readonly>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="payMethod">Método de Pago</label>
+                <select id="payMethod" name="payment_method" onchange="togglePaymentDetails()">
+                    <option value="cash" {{ 'selected' if form_data and form_data.get('payment_method') == 'cash' else '' }}>Efectivo</option>
+                    <option value="transfer" {{ 'selected' if form_data and form_data.get('payment_method') == 'transfer' else '' }}>Transferencia Bancaria</option>
+                    <option value="crypto" {{ 'selected' if form_data and form_data.get('payment_method') == 'crypto' else '' }}>Criptomoneda</option>
+                    <option value="other" {{ 'selected' if form_data and form_data.get('payment_method') == 'other' else '' }}>Otro</option>
+                </select>
+            </div>
+            <div id="bankDetails" class="payment-detail" style="display: {{ 'none' if not form_data or form_data.get('payment_method') != 'transfer' else 'block' }}">
+                <input type="text" name="bank_details" value="{{ form_data.get('bank_details', '') if form_data else '' }}" placeholder="Banco y CLABE/Account">
+            </div>
+            <div id="cryptoDetails" class="payment-detail" style="display: {{ 'none' if not form_data or form_data.get('payment_method') != 'crypto' else 'block' }}">
+                <input type="text" name="crypto_wallet" value="{{ form_data.get('crypto_wallet', '') if form_data else '' }}" placeholder="Dirección de Wallet">
+            </div>
+            <div id="otherDetails" class="payment-detail" style="display: {{ 'none' if not form_data or form_data.get('payment_method') != 'other' else 'block' }}">
+                <input type="text" name="other_method" value="{{ form_data.get('other_method', '') if form_data else '' }}" placeholder="Detalles del método de pago">
+            </div>
+            <div class="form-group">
+                <label for="deadline">Fecha Límite de Entrega</label>
+                <input type="date" id="deadline" name="deadline" value="{{ form_data.get('deadline', '') if form_data else '' }}" required>
+            </div>
+            <div class="checkbox-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="applyPenalty" name="apply_penalty" value="1" {{ 'checked' if form_data and form_data.get('apply_penalty') == '1' else '' }} onchange="togglePenaltyInput()">
+                    <span>Aplicar penalización por retraso en pago</span>
+                </label>
+                <div id="penaltyInput" style="display: {{ 'none' if not form_data or form_data.get('apply_penalty') != '1' else 'block' }}">
+                    <input type="number" name="penalty_rate" step="0.1" value="{{ form_data.get('penalty_rate', '5.0') if form_data else '5.0' }}" placeholder="% diario">
+                </div>
+            </div>
+        </div>
+        <button type="button" class="btn-toggle" onclick="toggleAdvanced()">
+            <i class="fas fa-cog"></i> Opciones Avanzadas (RFC, Direcciones, Firmas...)
+        </button>
+        <div id="advancedOptions" class="advanced-panel" style="display: {{ 'block' if form_data else 'none' }}">
+            <div class="form-row grid-2">
+                <div class="form-group">
+                    <label for="rfc_provider">RFC Prestador</label>
+                    <input type="text" id="rfc_provider" name="rfc_provider" value="{{ form_data.get('rfc_provider', '') if form_data else '' }}" placeholder="RFC">
+                </div>
+                <div class="form-group">
+                    <label for="rfc_client">RFC Cliente</label>
+                    <input type="text" id="rfc_client" name="rfc_client" value="{{ form_data.get('rfc_client', '') if form_data else '' }}" placeholder="RFC">
+                </div>
+            </div>
+            <div class="form-row grid-2">
+                <div class="form-group">
+                    <label for="address_provider">Dirección Prestador</label>
+                    <input type="text" id="address_provider" name="address_provider" value="{{ form_data.get('address_provider', '') if form_data else '' }}" placeholder="Dirección completa">
+                </div>
+                <div class="form-group">
+                    <label for="address_client">Dirección Cliente</label>
+                    <input type="text" id="address_client" name="address_client" value="{{ form_data.get('address_client', '') if form_data else '' }}" placeholder="Dirección completa">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="email_client">Email del Cliente</label>
+                <input type="email" id="email_client" name="email_client" value="{{ form_data.get('email_client', '') if form_data else '' }}" placeholder="cliente@email.com">
+            </div>
+            <div class="form-group">
+                <label for="witness_name">Nombre del Testigo (Opcional)</label>
+                <input type="text" id="witness_name" name="witness_name" value="{{ form_data.get('witness_name', '') if form_data else '' }}" placeholder="Nombre completo">
+            </div>
+            <div class="checkbox-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" name="include_confidentiality" {{ 'checked' if form_data and form_data.get('include_confidentiality') else '' }}>
+                    <span>Incluir cláusula de confidencialidad</span>
+                </label>
+            </div>
+            <div class="checkbox-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="includeSignatures" name="include_signatures" onchange="toggleSignatureNames()" {{ 'checked' if form_data and form_data.get('include_signatures') else '' }}>
+                    <span>Incluir espacio para firmas</span>
+                </label>
+                <div id="signatureNames" class="signature-inputs" style="display: {{ 'grid' if form_data and form_data.get('include_signatures') else 'none' }}">
+                    <div class="sig-input-group">
+                        <label>Nombre Impreso - Prestador</label>
+                        <input type="text" name="sig_provider_name" value="{{ form_data.get('sig_provider_name', '') if form_data else '' }}" placeholder="Nombre completo del prestador">
+                    </div>
+                    <div class="sig-input-group">
+                        <label>Nombre Impreso - Cliente</label>
+                        <input type="text" name="sig_client_name" value="{{ form_data.get('sig_client_name', '') if form_data else '' }}" placeholder="Nombre completo del cliente">
+                    </div>
+                    <div class="sig-input-group">
+                        <label>Nombre Impreso - Testigo</label>
+                        <input type="text" name="sig_witness_name" value="{{ form_data.get('sig_witness_name', '') if form_data else '' }}" placeholder="Nombre completo del testigo">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <button type="submit" class="btn-primary btn-large btn-full">
+            <i class="fas fa-check-circle"></i> Generar Contrato
+        </button>
+    </form>
+</div>
+{% endblock %}
+EOF
+
+cat > templates/pdf_view.html << 'EOF'
+{% extends "base.html" %}
+{% block title %}Ver Contrato - ContratoExpress{% endblock %}
+{% block content %}
+<div class="pdf-toolbar">
+    <a href="{{ url_for('history') }}" class="btn-secondary">
+        <i class="fas fa-arrow-left"></i> Volver
+    </a>
+    <button onclick="window.print()" class="btn-primary">
+        <i class="fas fa-print"></i> Guardar como PDF
+    </button>
+    <form action="{{ url_for('delete_contract', contract_id=contract.id) }}" method="POST" style="display:inline;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn-danger" onclick="return confirm('¿Estás seguro de eliminar este contrato?')">
+            <i class="fas fa-trash"></i> Eliminar
+        </button>
+    </form>
+</div>
+<div class="pdf-document">
+    <div class="pdf-header">
+        <div class="header-left">
+            {% if contract.provider_logo %}
+                <img src="{{ url_for('uploaded_file', filename=contract.provider_logo) }}" class="company-logo">
+            {% else %}
+                <div class="logo-placeholder">
+                    <i class="fas fa-file-contract"></i>
+                </div>
+            {% endif %}
+        </div>
+        <div class="header-center">
+            <h1>CONTRATO DE PRESTACIÓN DE SERVICIOS PROFESIONALES</h1>
+            <p class="contract-number">Contrato #{{ contract.id }}</p>
+            {% if contract.deadline %}
+                <p class="contract-date">En {{ contract.city_location }}, a {{ contract.deadline|string }}.</p>
+            {% endif %}
+        </div>
+        <div class="header-right">
+            <strong>{{ contract.provider_name }}</strong>
+            <p>Tel: {{ contract.provider_phone }}</p>
+            {% if contract.rfc_provider %}<p>RFC: {{ contract.rfc_provider }}</p>{% endif %}
+        </div>
+    </div>
+    <div class="pdf-section">
+        <h3>PARTES DEL CONTRATO</h3>
+        <p>El presente contrato se celebra entre <strong>{{ contract.provider_name }}</strong> (en adelante "EL PRESTADOR") y <strong>{{ contract.client_name }}</strong> (en adelante "EL CLIENTE"), quienes se reconocen mutuamente la capacidad legal necesaria para obligarse mediante el presente instrumento.</p>
+        {% if contract.address_provider or contract.address_client or contract.rfc_provider or contract.rfc_client %}
+        <p class="small-text">
+            {% if contract.rfc_provider %}RFC Prestador: {{ contract.rfc_provider }}. {% endif %}
+            {% if contract.address_provider %}Domicilio Prestador: {{ contract.address_provider }}. {% endif %}
+            {% if contract.rfc_client %}RFC Cliente: {{ contract.rfc_client }}. {% endif %}
+            {% if contract.address_client %}Domicilio Cliente: {{ contract.address_client }}. {% endif %}
+        </p>
+        {% endif %}
+    </div>
+    <div class="pdf-section">
+        <h3>PRIMERA. OBJETO DEL CONTRATO</h3>
+        <p>EL PRESTADOR se obliga a realizar el servicio de: <strong>{{ contract.service_title }}</strong></p>
+        <p><strong>Descripción:</strong> {{ contract.service_desc }}</p>
+    </div>
+    <div class="pdf-section">
+        <h3>SEGUNDA. MATERIALES</h3>
+        {% if contract.has_materials %}
+            <p>EL PRESTADOR incluye los siguientes materiales: {{ contract.materials_details }}</p>
+            <p>Los materiales no especificados correrán por cuenta de EL CLIENTE.</p>
+        {% else %}
+            <p>Todos los materiales e insumos necesarios para la realización del servicio serán proporcionados por EL CLIENTE.</p>
+        {% endif %}
+    </div>
+    <div class="pdf-section">
+        <h3>TERCERA. HONORARIOS Y FORMA DE PAGO</h3>
+        <p>El costo total del servicio es de <strong class="highlight">${{ "%.2f"|format(contract.total_amount) }}</strong> ({{ contract.total_amount|int }} pesos {{ "%.0f"|format((contract.total_amount % 1) * 100) }}/100 M.N.).</p>
+        {% if contract.payment_structure == 'advance' %}
+            <p><strong>Forma de pago:</strong> Se establece un anticipo de ${{ "%.2f"|format(contract.advance_amount) }} al firmar el presente contrato, y el resto (${{ "%.2f"|format(contract.remaining_amount) }}) al finalizar el servicio.</p>
+        {% elif contract.payment_structure == 'partial' %}
+            <p><strong>Forma de pago:</strong> Pagos parciales según avance del servicio.</p>
+        {% else %}
+            <p><strong>Forma de pago:</strong> Pago único al {{ "iniciar" if contract.payment_timing == "before" else "finalizar" }} el servicio.</p>
+        {% endif %}
+        {% if contract.payment_method == 'transfer' %}
+            <p><strong>Método de pago:</strong> Transferencia bancaria a: {{ contract.bank_details }}</p>
+        {% elif contract.payment_method == 'crypto' %}
+            <p><strong>Método de pago:</strong> Criptomoneda a la dirección: {{ contract.crypto_wallet }}</p>
+        {% elif contract.payment_method == 'other' %}
+            <p><strong>Método de pago:</strong> {{ contract.other_method }}</p>
+        {% else %}
+            <p><strong>Método de pago:</strong> Efectivo</p>
+        {% endif %}
+    </div>
+    <div class="pdf-section">
+        <h3>CUARTA. PLAZO DE EJECUCIÓN</h3>
+        <p>EL PRESTADOR se obliga a entregar el servicio a más tardar el día <strong>{{ contract.deadline|string }}</strong>.</p>
+    </div>
+    <div class="pdf-section">
+        <h3>QUINTA. GARANTÍA</h3>
+        <p>EL PRESTADOR otorga garantía por defectos de ejecución del servicio por un período de 30 días naturales contados a partir de la entrega. Esta garantía no cubre daños por mal uso o causas ajenas a la ejecución del servicio.</p>
+    </div>
+    {% if contract.include_confidentiality %}
+    <div class="pdf-section">
+        <h3>SEXTA. CONFIDENCIALIDAD</h3>
+        <p>Ambas partes se comprometen a guardar estricta confidencialidad sobre la información intercambiada durante la vigencia del presente contrato y por un período de 2 años después de su terminación.</p>
+    </div>
+    {% endif %}
+    {% if contract.payment_timing == 'after' and contract.penalty_rate %}
+    <div class="pdf-section">
+        <h3>{% if contract.include_confidentiality %}SÉPTIMA{% else %}SEXTA{% endif %}. INCUMPLIMIENTO Y PENALIZACIONES</h3>
+        <p>El retraso en el pago generará una penalización del {{ "%.1f"|format(contract.penalty_rate) }}% diario sobre el monto pendiente. Si el incumplimiento persiste por más de 15 días naturales, EL PRESTADOR podrá dar por terminado el contrato y exigir el pago inmediato más las penalizaciones correspondientes.</p>
+    </div>
+    {% endif %}
+    <div class="pdf-section">
+        <h3>{% if contract.payment_timing == 'after' and contract.penalty_rate %}SÉPTIMA{% elif contract.include_confidentiality %}SÉPTIMA{% else %}SEXTA{% endif %}. TERMINACIÓN</h3>
+        <p>El presente contrato podrá terminarse anticipadamente por mutuo acuerdo de las partes o por incumplimiento de alguna de las obligaciones aquí establecidas.</p>
+    </div>
+    {% if contract.include_signatures %}
+    <div class="signatures-section">
+        <div class="sig-box">
+            <div class="sig-line"></div>
+            <p class="sig-name">{{ contract.sig_provider_name or contract.provider_name }}</p>
+            <small>EL PRESTADOR</small>
+        </div>
+        <div class="sig-box">
+            <div class="sig-line"></div>
+            <p class="sig-name">{{ contract.sig_client_name or contract.client_name }}</p>
+            <small>EL CLIENTE</small>
+        </div>
+        {% if contract.witness_name %}
+        <div class="sig-box">
+            <div class="sig-line"></div>
+            <p class="sig-name">{{ contract.sig_witness_name or contract.witness_name }}</p>
+            <small>TESTIGO</small>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+    <div class="pdf-footer">
+        <p>Documento generado por ContratoExpress - {{ (contract.created_at|string)[:10] }}</p>
+    </div>
+</div>
+{% endblock %}
+EOF
+
+cat > templates/history.html << 'EOF'
+{% extends "base.html" %}
+{% block title %}Historial - ContratoExpress{% endblock %}
+{% block content %}
+<div class="history-container">
+    <div class="page-header">
+        <h1><i class="fas fa-history"></i> Historial de Contratos</h1>
+        <p>Consulta y gestiona todos tus contratos generados</p>
+    </div>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="alerts-container">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        <i class="fas {% if category == 'error' %}fa-exclamation-circle{% elif category == 'success' %}fa-check-circle{% else %}fa-info-circle{% endif %}"></i>
+                        <span>{{ message }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+    {% if contracts %}
+        <div class="contracts-grid">
+            {% for c in contracts %}
+            <div class="contract-card">
+                <div class="contract-header">
+                    <div class="contract-type">
+                        <i class="fas fa-file-contract"></i>
+                        <span>{{ c.service_type }}</span>
+                    </div>
+                    <span class="contract-status">Activo</span>
+                </div>
+                <div class="contract-body">
+                    <h3>{{ c.service_title }}</h3>
+                    <p class="client-name"><i class="fas fa-user"></i> {{ c.client_name }}</p>
+                    <div class="contract-meta">
+                        <span><i class="fas fa-calendar"></i> {{ (c.created_at|string)[:10] }}</span>
+                        <span><i class="fas fa-dollar-sign"></i> ${{ "%.2f"|format(c.total_amount) }}</span>
+                    </div>
+                </div>
+                <div class="contract-actions">
+                    <a href="{{ url_for('view_contract', contract_id=c.id) }}" class="btn-primary btn-sm">
+                        <i class="fas fa-eye"></i> Ver
+                    </a>
+                    <form action="{{ url_for('delete_contract', contract_id=c.id) }}" method="POST" style="display:inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn-danger btn-sm" onclick="return confirm('¿Eliminar este contrato?')">
+                            <i class="fas fa-trash"></i> Eliminar
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <i class="fas fa-folder-open"></i>
+            <h3>No hay contratos aún</h3>
+            <p>Cuando crees tu primer contrato, aparecerá aquí.</p>
+            <a href="{{ url_for('new_contract') }}" class="btn-primary">
+                <i class="fas fa-plus"></i> Crear Primer Contrato
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+EOF
+
+cat > static/style.css << 'EOF'
+:root {
+    --primary: #4f46e5;
+    --primary-dark: #4338ca;
+    --primary-light: #818cf8;
+    --secondary: #06b6d4;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --dark: #1e293b;
+    --gray: #64748b;
+    --light: #f1f5f9;
+    --white: #ffffff;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    color: var(--dark);
+}
+
+.navbar {
+    background: var(--white);
+    padding: 1rem 2rem;
+    box-shadow: var(--shadow);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.nav-brand i {
+    font-size: 1.8rem;
+}
+
+.nav-links {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+}
+
+.nav-links a {
+    text-decoration: none;
+    color: var(--gray);
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    transition: all 0.3s;
+}
+
+.nav-links a:hover, .nav-links a.active {
+    color: var(--primary);
+    background: var(--light);
+}
+
+.nav-user {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding-left: 1rem;
+    border-left: 2px solid var(--light);
+}
+
+.logout-btn {
+    color: var(--danger) !important;
+    padding: 0.5rem !important;
+}
+
+.main-content {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.auth-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 1rem;
+}
+
+.auth-card {
+    background: var(--white);
+    border-radius: 1rem;
+    padding: 2.5rem;
+    box-shadow: var(--shadow-lg);
+    width: 100%;
+    max-width: 450px;
+    animation: slideUp 0.5s ease;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.logo-icon {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    font-size: 2.5rem;
+    color: var(--white);
+}
+
+.auth-header h1 {
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+    color: var(--dark);
+}
+
+.subtitle {
+    color: var(--gray);
+    font-size: 0.95rem;
+}
+
+.auth-form, .contract-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-group label {
+    font-weight: 500;
+    color: var(--dark);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    padding: 0.75rem 1rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    transition: all 0.3s;
+    font-family: 'Inter', sans-serif;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.alerts-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin: 1rem 0;
+}
+
+.alert {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.alert-error {
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+}
+
+.alert-success {
+    background: #f0fdf4;
+    color: #16a34a;
+    border: 1px solid #bbf7d0;
+}
+
+.alert-warning {
+    background: #fffbeb;
+    color: #d97706;
+    border: 1px solid #fde68a;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: var(--white);
+    border: none;
+    padding: 0.875rem 1.5rem;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    text-decoration: none;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3);
+}
+
+.btn-secondary {
+    background: var(--white);
+    color: var(--dark);
+    border: 2px solid #e2e8f0;
+    padding: 0.875rem 1.5rem;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+}
+
+.btn-secondary:hover {
+    background: var(--light);
+    border-color: var(--gray);
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: var(--white);
+    border: none;
+    padding: 0.875rem 1.5rem;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+    transform: translateY(-2px);
+}
+
+.btn-full {
+    width: 100%;
+}
+
+.btn-large {
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+    margin-top: 1rem;
+}
+
+.btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+}
+
+.btn-help {
+    background: transparent;
+    border: 2px dashed var(--primary);
+    color: var(--primary);
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-weight: 500;
+    width: 100%;
+    margin-top: 1rem;
+    transition: all 0.3s;
+}
+
+.btn-help:hover {
+    background: rgba(79, 70, 229, 0.1);
+}
+
+.auth-footer {
+    margin-top: 1.5rem;
+    text-align: center;
+}
+
+.auth-footer p {
+    color: var(--gray);
+    margin-bottom: 0.5rem;
+}
+
+.auth-footer a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.auth-footer a:hover {
+    text-decoration: underline;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.3s;
+}
+
+.modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal-content {
+    background: var(--white);
+    border-radius: 1rem;
+    max-width: 600px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideUp 0.3s;
+}
+
+.modal-header {
+    padding: 1.5rem;
+    border-bottom: 2px solid var(--light);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.modal-header i {
+    font-size: 2rem;
+    color: var(--warning);
+}
+
+.modal-header h2 {
+    color: var(--dark);
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-body p {
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+
+.feature-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.feature-item {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--light);
+    border-radius: 0.5rem;
+}
+
+.feature-item i {
+    font-size: 1.5rem;
+    color: var(--primary);
+}
+
+.feature-item h4 {
+    margin-bottom: 0.25rem;
+    color: var(--dark);
+}
+
+.feature-item p {
+    margin: 0;
+    color: var(--gray);
+    font-size: 0.9rem;
+}
+
+.highlight {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    padding: 1rem;
+    border-radius: 0.5rem;
+    border-left: 4px solid var(--warning);
+}
+
+.modal-footer {
+    padding: 1.5rem;
+    border-top: 2px solid var(--light);
+    text-align: right;
+}
+
+.close {
+    float: right;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--gray);
+    padding: 0.5rem;
+}
+
+.close:hover {
+    color: var(--dark);
+}
+
+.dashboard {
+    animation: fadeIn 0.5s;
+}
+
+.welcome-section {
+    background: var(--white);
+    padding: 2rem;
+    border-radius: 1rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow);
+}
+
+.welcome-section h1 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    color: var(--dark);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: var(--white);
+    padding: 1.5rem;
+    border-radius: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: var(--shadow);
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: var(--white);
+}
+
+.stat-icon.blue { background: var(--primary); }
+.stat-icon.green { background: var(--success); }
+.stat-icon.purple { background: #8b5cf6; }
+
+.stat-info h3, .stat-info h4 {
+    color: var(--dark);
+    margin-bottom: 0.25rem;
+}
+
+.stat-info p {
+    color: var(--gray);
+    font-size: 0.9rem;
+}
+
+.quick-actions {
+    background: var(--white);
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: var(--shadow);
+    margin-bottom: 2rem;
+}
+
+.quick-actions h2 {
+    margin-bottom: 1.5rem;
+    color: var(--dark);
+}
+
+.action-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.action-card {
+    padding: 2rem;
+    border-radius: 1rem;
+    text-decoration: none;
+    transition: all 0.3s;
+    text-align: center;
+}
+
+.action-card.primary {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: var(--white);
+}
+
+.action-card.secondary {
+    background: var(--light);
+    color: var(--dark);
+}
+
+.action-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+}
+
+.action-card i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.action-card h3 {
+    margin-bottom: 0.5rem;
+}
+
+.action-card p {
+    opacity: 0.9;
+}
+
+.account-settings {
+    background: var(--white);
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: var(--shadow);
+}
+
+.account-settings h2 {
+    margin-bottom: 1rem;
+    color: var(--danger);
+}
+
+.danger-zone {
+    background: #fef2f2;
+    border: 2px solid #fecaca;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+}
+
+.danger-zone p {
+    color: #dc2626;
+    margin-bottom: 1rem;
+}
+
+.form-container {
+    background: var(--white);
+    border-radius: 1rem;
+    padding: 2rem;
+    box-shadow: var(--shadow-lg);
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.form-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.form-header h1 {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.form-section {
+    margin-bottom: 2rem;
+    padding-bottom: 2rem;
+    border-bottom: 2px solid var(--light);
+}
+
+.form-section h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    color: var(--primary);
+    font-size: 1.2rem;
+}
+
+.grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+}
+
+.form-row {
+    margin-bottom: 1.5rem;
+}
+
+.checkbox-group {
+    margin: 1rem 0;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.file-upload {
+    margin-top: 0.5rem;
+}
+
+.file-upload input[type="file"] {
+    padding: 0.5rem;
+    border: 2px dashed #e2e8f0;
+    border-radius: 0.5rem;
+    width: 100%;
+    cursor: pointer;
+}
+
+#logoPreview {
+    max-width: 150px;
+    max-height: 150px;
+    margin-top: 1rem;
+    border-radius: 0.5rem;
+    box-shadow: var(--shadow);
+}
+
+.btn-toggle {
+    background: var(--light);
+    border: none;
+    padding: 1rem;
+    width: 100%;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--dark);
+    margin: 1.5rem 0;
+    transition: all 0.3s;
+}
+
+.btn-toggle:hover {
+    background: #e2e8f0;
+}
+
+.advanced-panel {
+    background: #f8fafc;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+/* ✅ CSS MEJORADO PARA CAMPOS DE FIRMA */
+.signature-inputs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+    padding: 1.5rem;
+    background: var(--light);
+    border-radius: 0.5rem;
+    border: 2px solid #e2e8f0;
+}
+
+.sig-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.sig-input-group label {
+    font-weight: 600;
+    color: var(--dark);
+    font-size: 0.9rem;
+}
+
+.sig-input-group input {
+    padding: 0.75rem;
+    border: 2px solid #cbd5e1;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    transition: all 0.3s;
+}
+
+.sig-input-group input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.history-container {
+    animation: fadeIn 0.5s;
+}
+
+.page-header {
+    background: var(--white);
+    padding: 2rem;
+    border-radius: 1rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow);
+}
+
+.page-header h1 {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.contracts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 1.5rem;
+}
+
+.contract-card {
+    background: var(--white);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+    transition: all 0.3s;
+}
+
+.contract-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+}
+
+.contract-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--light);
+}
+
+.contract-type {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.contract-status {
+    background: var(--success);
+    color: var(--white);
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.contract-body h3 {
+    margin-bottom: 0.75rem;
+    color: var(--dark);
+}
+
+.client-name {
+    color: var(--gray);
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.contract-meta {
+    display: flex;
+    gap: 1rem;
+    color: var(--gray);
+    font-size: 0.9rem;
+}
+
+.contract-meta span {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.contract-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: var(--white);
+    border-radius: 1rem;
+    box-shadow: var(--shadow);
+}
+
+.empty-state i {
+    font-size: 4rem;
+    color: var(--gray);
+    margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+    margin-bottom: 0.5rem;
+    color: var(--dark);
+}
+
+.empty-state p {
+    color: var(--gray);
+    margin-bottom: 1.5rem;
+}
+
+.pdf-toolbar {
+    background: var(--white);
+    padding: 1rem 2rem;
+    border-radius: 1rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow);
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.pdf-document {
+    background: var(--white);
+    padding: 3rem;
+    border-radius: 1rem;
+    box-shadow: var(--shadow-lg);
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.pdf-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding-bottom: 2rem;
+    border-bottom: 3px solid var(--primary);
+    margin-bottom: 2rem;
+}
+
+.header-left {
+    flex: 1;
+}
+
+.company-logo {
+    max-width: 150px;
+    max-height: 100px;
+    object-fit: contain;
+}
+
+.logo-placeholder {
+    width: 100px;
+    height: 100px;
+    background: var(--light);
+    border-radius: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    color: var(--primary);
+}
+
+.header-center {
+    flex: 2;
+    text-align: center;
+}
+
+.header-center h1 {
+    font-size: 1.5rem;
+    color: var(--dark);
+    margin-bottom: 0.5rem;
+}
+
+.contract-number, .contract-date {
+    color: var(--gray);
+    font-size: 0.9rem;
+}
+
+.header-right {
+    flex: 1;
+    text-align: right;
+}
+
+.pdf-section {
+    margin-bottom: 2rem;
+}
+
+.pdf-section h3 {
+    color: var(--primary);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--light);
+}
+
+.pdf-section p {
+    line-height: 1.8;
+    margin-bottom: 0.75rem;
+    text-align: justify;
+}
+
+.small-text {
+    font-size: 0.85rem;
+    color: var(--gray);
+}
+
+.highlight {
+    color: var(--primary);
+    font-weight: 700;
+}
+
+.signatures-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 2rem;
+    margin-top: 4rem;
+    padding-top: 2rem;
+    border-top: 2px solid var(--light);
+}
+
+.sig-box {
+    text-align: center;
+}
+
+.sig-line {
+    border-top: 2px solid var(--dark);
+    margin-bottom: 0.5rem;
+    height: 60px;
+}
+
+.sig-name {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.pdf-footer {
+    margin-top: 3rem;
+    padding-top: 1rem;
+    border-top: 2px solid var(--light);
+    text-align: center;
+    color: var(--gray);
+    font-size: 0.85rem;
+}
+
+@media (max-width: 768px) {
+    .navbar {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .nav-links {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .grid-2, .grid-3 {
+        grid-template-columns: 1fr;
+    }
+    
+    .pdf-header {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .header-right {
+        text-align: left;
+    }
+    
+    .contracts-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .main-content {
+        padding: 1rem;
+    }
+    
+    .auth-card {
+        padding: 1.5rem;
+    }
+    
+    .signature-inputs {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media print {
+    .navbar, .pdf-toolbar, button, a {
+        display: none !important;
+    }
+    
+    body {
+        background: white;
+    }
+    
+    .pdf-document {
+        box-shadow: none;
+        padding: 0;
+        max-width: 100%;
+    }
+    
+    .main-content {
+        padding: 0;
+    }
+}
+EOF
+
+cat > static/script.js << 'EOF'
+function showHelp() {
+    document.getElementById('helpModal').classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeHelp() {
+    document.getElementById('helpModal').classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+window.onclick = function(event) {
+    const modal = document.getElementById('helpModal');
+    if (event.target === modal) {
+        closeHelp();
+    }
+}
+
+function toggleOtherService() {
+    const type = document.getElementById('serviceType').value;
+    const customGroup = document.getElementById('customServiceGroup');
+    const standardGroup = document.getElementById('standardServiceGroup');
+    const customInput = document.getElementById('customServiceInput');
+    const standardInput = document.getElementById('standardServiceTitle');
+    
+    if (type === 'Otros') {
+        customGroup.style.display = 'block';
+        standardGroup.style.display = 'none';
+        customInput.setAttribute('required', 'true');
+        customInput.name = "service_title_custom";
+        standardInput.removeAttribute('name');
+        standardInput.removeAttribute('required');
+    } else {
+        customGroup.style.display = 'none';
+        standardGroup.style.display = 'block';
+        customInput.removeAttribute('required');
+        customInput.removeAttribute('name');
+        standardInput.name = "service_title_std";
+        standardInput.setAttribute('required', 'true');
+    }
+}
+
+function toggleMaterials() {
+    const checkbox = document.getElementById('hasMaterials');
+    const options = document.getElementById('materialsOptions');
+    options.style.display = checkbox.checked ? 'block' : 'none';
+}
+
+function calcRemaining() {
+    const structure = document.getElementById('payStructure').value;
+    const total = parseFloat(document.getElementById('totalAmount').value) || 0;
+    const advanceInput = document.getElementById('advanceAmount');
+    const remainingInput = document.getElementById('remainingAmount');
+    const advanceDiv = document.getElementById('advanceDiv');
+    const remainingDiv = document.getElementById('remainingDiv');
+    
+    if (structure === 'advance' || structure === 'partial') {
+        advanceDiv.style.display = 'block';
+        remainingDiv.style.display = 'block';
+        const advance = parseFloat(advanceInput.value) || 0;
+        remainingInput.value = (total - advance).toFixed(2);
+    } else {
+        advanceDiv.style.display = 'none';
+        remainingDiv.style.display = 'none';
+        advanceInput.value = '';
+        remainingInput.value = '';
+    }
+}
+
+function togglePaymentDetails() {
+    const method = document.getElementById('payMethod').value;
+    document.getElementById('bankDetails').style.display = 'none';
+    document.getElementById('cryptoDetails').style.display = 'none';
+    document.getElementById('otherDetails').style.display = 'none';
+    
+    if (method === 'transfer') {
+        document.getElementById('bankDetails').style.display = 'block';
+    } else if (method === 'crypto') {
+        document.getElementById('cryptoDetails').style.display = 'block';
+    } else if (method === 'other') {
+        document.getElementById('otherDetails').style.display = 'block';
+    }
+}
+
+function togglePenalties() {
+    const timing = document.getElementById('payTiming').value;
+    const penaltySection = document.getElementById('penaltyInput');
+    const checkbox = document.getElementById('applyPenalty');
+    
+    if (timing === 'before') {
+        penaltySection.style.display = 'none';
+        checkbox.checked = false;
+    } else {
+        if (checkbox.checked) {
+            penaltySection.style.display = 'block';
+        }
+    }
+}
+
+function togglePenaltyInput() {
+    const checkbox = document.getElementById('applyPenalty');
+    const input = document.getElementById('penaltyInput');
+    input.style.display = checkbox.checked ? 'block' : 'none';
+}
+
+function toggleAdvanced() {
+    const panel = document.getElementById('advancedOptions');
+    panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+}
+
+function toggleSignatureNames() {
+    const checkbox = document.getElementById('includeSignatures');
+    const namesDiv = document.getElementById('signatureNames');
+    namesDiv.style.display = checkbox.checked ? 'grid' : 'none';
+}
+
+function previewLogo(input) {
+    const preview = document.getElementById('logoPreview');
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.src = e.target.result;
+            preview.classList.remove('hidden');
+        }
+        reader.readAsDataURL(input.files[0]);
+    } else {
+        preview.classList.add('hidden');
+    }
+}
+
+document.getElementById('contractForm').addEventListener('submit', function(e) {
+    const total = parseFloat(document.getElementById('totalAmount').value);
+    if (isNaN(total) || total <= 0) {
+        e.preventDefault();
+        alert("El monto total debe ser mayor a 0.");
+        return false;
+    }
+    
+    const customInput = document.getElementById('customServiceInput');
+    if (document.getElementById('customServiceGroup').style.display === 'block' && !customInput.value.trim()) {
+        e.preventDefault();
+        alert("Especifica el tipo de servicio personalizado.");
+        return false;
+    }
+    
+    const checkbox = document.getElementById('applyPenalty');
+    const penaltyInput = document.querySelector('#penaltyInput input');
+    if (checkbox.checked && (!penaltyInput.value || parseFloat(penaltyInput.value) <= 0)) {
+        e.preventDefault();
+        alert("Ingrese un valor de penalización válido (> 0).");
+        return false;
+    }
+});
+
+setTimeout(function() {
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(function(alert) {
+        alert.style.transition = 'opacity 0.5s';
+        alert.style.opacity = '0';
+        setTimeout(function() {
+            alert.remove();
+        }, 500);
+    });
+}, 5000);
+EOF
+
+echo ""
+echo "✅ ContratoExpress v3.3 COMPLETO Y CORREGIDO"
+echo ""
+echo "📁 Archivos creados:"
+echo "   ✓ app.py (INSERT 35=35 corregido)"
+echo "   ✓ rules.py"
+echo "   ✓ templates/base.html"
+echo "   ✓ templates/login.html"
+echo "   ✓ templates/register.html"
+echo "   ✓ templates/dashboard.html (con eliminar cuenta)"
+echo "   ✓ templates/form.html (service_title_custom/std)"
+echo "   ✓ templates/pdf_view.html (Jinja2 corregido)"
+echo "   ✓ templates/history.html (Jinja2 corregido)"
+echo "   ✓ static/style.css (CSS mejorado para firmas)"
+echo "   ✓ static/script.js"
+echo ""
+echo "🚀 Para ejecutar:"
+echo "   cd ContratoExpress"
+echo "   rm -f contracts.db"
+echo "   pip install -r requirements.txt"
+echo "   export FLASK_APP=app.py"
+echo "   export SECRET_KEY='tu-clave-secreta'"
+echo "   flask run --host=0.0.0.0"
+echo ""
+echo "🔧 Correcciones:"
+echo "   ✓ INSERT: 35 columnas = 35 valores"
+echo "   ✓ Jinja2: (var|string)[:10] con paréntesis"
+echo "   ✓ service_title_custom y service_title_std"
+echo "   ✓ Función delete_account RESTAURADA"
+echo "   ✓ CSS mejorado para campos de firma"
+echo "   ✓ CSRF en todos los formularios"
+echo ""
