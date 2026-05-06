@@ -368,7 +368,7 @@ def new_contract():
                     rfc_provider, rfc_client, address_provider, address_client, email_client,
                     witness_name, include_confidentiality, include_signatures,
                     sig_provider_name, sig_client_name, sig_witness_name
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 session['user_id'], request.form.get('city_location'),
                 request.form.get('provider_name'), request.form.get('provider_phone'), logo_filename,
