@@ -1178,15 +1178,15 @@ EOF
 /* CSS con variables y todo eso */
 cat > static/style.css << 'EOF'
 :root {
-    --primary: #0f4c81;       /* Azul clásico sobrio */
-    --primary-dark: #093256;
-    --primary-light: #1a6ab3;
+    --primary: #c6b512;       /* Dorado profesional */
+    --primary-dark: #a89b10;
+    --primary-light: #e0cf25;
     --secondary: #546e7a;     /* Gris azulado neutro */
     --success: #2e7d32;       /* Verde bosque */
     --warning: #ed6c02;       /* Naranja oscuro */
     --danger: #c62828;        /* Rojo ladrillo */
-    --text-primary: #e0e6ed;  /* Texto claro suave */
-    --text-secondary: #b0bec5; /* Texto secundario gris */
+    --text-primary: #ffffff;  /* Blanco puro para máxima legibilidad */
+    --text-secondary: #ffffff; /* Blanco puro para máxima legibilidad */
     --card-bg: #1e252b;        /* Fondo tarjetas gris oscuro neutro */
     --bg-main: #121619;        /* Fondo principal casi negro */
     --border-color: #37474f;   /* Bordes sutiles */
@@ -1204,7 +1204,7 @@ body {
     font-family: 'Inter', sans-serif;
     background: var(--bg-main);
     min-height: 100vh;
-    color: var(--text-primary);
+    color: #ffffff;
     line-height: 1.6;
 }
 
@@ -1242,7 +1242,7 @@ body {
 
 .nav-links a {
     text-decoration: none;
-    color: var(--text-secondary);
+    color: #ffffff;
     font-weight: 500;
     padding: 0.5rem 1rem;
     border-radius: 0.5rem;
@@ -1319,18 +1319,18 @@ body {
     justify-content: center;
     margin: 0 auto 1.5rem;
     font-size: 2.5rem;
-    color: var(--text-primary);
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(198, 181, 18, 0.3);
 }
 
 .auth-header h1 {
     font-size: 1.8rem;
     margin-bottom: 0.5rem;
-    color: var(--text-primary);
+    color: #ffffff;
 }
 
 .subtitle {
-    color: var(--text-secondary);
+    color: #ffffff;
     font-size: 0.95rem;
 }
 
@@ -1348,7 +1348,7 @@ body {
 
 .form-group label {
     font-weight: 500;
-    color: var(--text-primary);
+    color: #ffffff;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -1370,7 +1370,7 @@ body {
 .form-group textarea:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+    box-shadow: 0 0 0 3px rgba(198, 181, 18, 0.2);
 }
 
 .alerts-container {
@@ -1420,7 +1420,7 @@ body {
 
 .btn-primary {
     background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-    color: var(--text-primary);
+    color: #ffffff;
     border: none;
     padding: 0.875rem 1.5rem;
     border-radius: 0.5rem;
@@ -1437,12 +1437,12 @@ body {
 
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 10px 20px rgba(37, 99, 235, 0.4);
+    box-shadow: 0 10px 20px rgba(198, 181, 18, 0.4);
 }
 
 .btn-secondary {
     background: var(--card-bg);
-    color: var(--text-primary);
+    color: #ffffff;
     border: 2px dashed var(--primary);
     padding: 0.875rem 1.5rem;
     border-radius: 0.5rem;
@@ -1458,12 +1458,12 @@ body {
 
 .btn-secondary:hover {
     background: var(--card-bg);
-    border-color: var(--text-secondary);
+    border-color: #ffffff;
 }
 
 .btn-danger {
     background: var(--danger);
-    color: var(--text-primary);
+    color: #ffffff;
     border: none;
     padding: 0.875rem 1.5rem;
     border-radius: 0.5rem;
@@ -1510,7 +1510,7 @@ body {
 }
 
 .btn-help:hover {
-    background: rgba(37, 99, 235, 0.15);
+    background: rgba(198, 181, 18, 0.15);
 }
 
 .auth-footer {
@@ -1519,7 +1519,7 @@ body {
 }
 
 .auth-footer p {
-    color: var(--text-secondary);
+    color: #ffffff;
     margin-bottom: 0.5rem;
 }
 
@@ -1583,7 +1583,7 @@ body {
 }
 
 .modal-header h2 {
-    color: var(--text-primary);
+    color: #ffffff;
 }
 
 .modal-body {
@@ -1617,12 +1617,12 @@ body {
 
 .feature-item h4 {
     margin-bottom: 0.25rem;
-    color: var(--text-primary);
+    color: #ffffff;
 }
 
 .feature-item p {
     margin: 0;
-    color: var(--text-secondary);
+    color: #ffffff;
     font-size: 0.9rem;
 }
 
@@ -1643,12 +1643,12 @@ body {
     float: right;
     font-size: 1.5rem;
     cursor: pointer;
-    color: var(--text-secondary);
+    color: #ffffff;
     padding: 0.5rem;
 }
 
 .close:hover {
-    color: var(--text-primary);
+    color: #ffffff;
 }
 
 .dashboard {
@@ -1667,7 +1667,7 @@ body {
 .welcome-section h1 {
     font-size: 2rem;
     margin-bottom: 0.5rem;
-    color: var(--text-primary);
+    color: #ffffff;
 }
 
 .stats-grid {
@@ -1696,7 +1696,7 @@ body {
     align-items: center;
     justify-content: center;
     font-size: 1.5rem;
-    color: var(--text-primary);
+    color: #ffffff;
 }
 
 .stat-icon.blue { background: var(--primary); }
@@ -1704,12 +1704,12 @@ body {
 .stat-icon.purple { background: var(--secondary); }
 
 .stat-info h3, .stat-info h4 {
-    color: var(--text-primary);
+    color: #ffffff;
     margin-bottom: 0.25rem;
 }
 
 .stat-info p {
-    color: var(--text-secondary);
+    color: #ffffff;
     font-size: 0.9rem;
 }
 
@@ -1724,7 +1724,7 @@ body {
 
 .quick-actions h2 {
     margin-bottom: 1.5rem;
-    color: var(--text-primary);
+    color: #ffffff;
 }
 
 .action-grid {
@@ -1743,12 +1743,12 @@ body {
 
 .action-card.primary {
     background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-    color: var(--text-primary);
+    color: #ffffff;
 }
 
 .action-card.secondary {
     background: var(--card-bg);
-    color: var(--text-primary);
+    color: #ffffff;
 }
 
 .action-card:hover {
@@ -1810,6 +1810,7 @@ body {
 }
 
 .form-header h1 {
+    color: #ffffff;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1894,7 +1895,7 @@ body {
     border-radius: 0.5rem;
     cursor: pointer;
     font-weight: 600;
-    color: var(--text-primary);
+    color: #ffffff;
     margin: 1.5rem 0;
     transition: all 0.3s;
 }
@@ -1930,7 +1931,7 @@ body {
 
 .sig-input-group label {
     font-weight: 600;
-    color: var(--text-primary);
+    color: #ffffff;
     font-size: 0.9rem;
 }
 
@@ -1945,7 +1946,7 @@ body {
 .sig-input-group input:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+    box-shadow: 0 0 0 3px rgba(198, 181, 18, 0.2);
 }
 
 .history-container {
@@ -2007,7 +2008,7 @@ body {
 
 .contract-status {
     background: var(--success);
-    color: var(--text-primary);
+    color: #ffffff;
     padding: 0.25rem 0.75rem;
     border-radius: 1rem;
     font-size: 0.875rem;
@@ -2016,11 +2017,11 @@ body {
 
 .contract-body h3 {
     margin-bottom: 0.75rem;
-    color: var(--text-primary);
+    color: #ffffff;
 }
 
 .client-name {
-    color: var(--text-secondary);
+    color: #ffffff;
     margin-bottom: 0.75rem;
     display: flex;
     align-items: center;
@@ -2030,7 +2031,7 @@ body {
 .contract-meta {
     display: flex;
     gap: 1rem;
-    color: var(--text-secondary);
+    color: #ffffff;
     font-size: 0.9rem;
 }
 
@@ -2056,17 +2057,17 @@ body {
 
 .empty-state i {
     font-size: 4rem;
-    color: var(--text-secondary);
+    color: #ffffff;
     margin-bottom: 1rem;
 }
 
 .empty-state h3 {
     margin-bottom: 0.5rem;
-    color: var(--text-primary);
+    color: #ffffff;
 }
 
 .empty-state p {
-    color: var(--text-secondary);
+    color: #ffffff;
     margin-bottom: 1.5rem;
 }
 
@@ -2128,12 +2129,12 @@ body {
 
 .header-center h1 {
     font-size: 1.5rem;
-    color: var(--text-primary);
+    color: #ffffff;
     margin-bottom: 0.5rem;
 }
 
 .contract-number, .contract-date {
-    color: var(--text-secondary);
+    color: #ffffff;
     font-size: 0.9rem;
 }
 
@@ -2161,7 +2162,7 @@ body {
 
 .small-text {
     font-size: 0.85rem;
-    color: var(--text-secondary);
+    color: #ffffff;
 }
 
 .highlight {
@@ -2183,7 +2184,7 @@ body {
 }
 
 .sig-line {
-    border-top: 2px solid var(--text-primary);
+    border-top: 2px solid #ffffff;
     margin-bottom: 0.5rem;
     height: 60px;
 }
@@ -2198,7 +2199,7 @@ body {
     padding-top: 1rem;
     border-top: 2px solid var(--border-color);
     text-align: center;
-    color: var(--text-secondary);
+    color: #ffffff;
     font-size: 0.85rem;
 }
 
