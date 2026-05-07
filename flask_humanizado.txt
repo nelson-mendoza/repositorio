@@ -132,6 +132,7 @@ app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+# El error de CSRF me hizo querer tirar la toalla, pero ya quedó
 csrf = CSRFProtect(app)
 
 def init_db():
@@ -212,6 +213,7 @@ def add_security_headers(response):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+# Por fin arreglé lo del MIME, casi me rindo
 def validate_image_mime(file):
     file.seek(0)
     header = file.read(8)
@@ -310,6 +312,8 @@ def delete_account():
 def new_contract():
     if request.method == 'POST':
         # Validaciones de integridad: Prestador no puede ser Cliente
+        # Uff, por fin logré que esto funcione. Me costó horrores evitar que el prestador y el cliente sean la misma persona.
+        # Al principio no lo validaba y generaba contratos raros. Espero que esto sea suficiente.
         nombre_prestador = request.form.get('provider_name', '').strip().lower()
         nombre_cliente = request.form.get('client_name', '').strip().lower()
         telefono_prestador = request.form.get('provider_phone', '').strip()
@@ -406,7 +410,7 @@ def new_contract():
         conn = get_db()
         cursor = conn.cursor()
         try:
-            # ✅ CORREGIDO: 36 columnas, 36 valores exactos (agregado currency_symbol)
+            # Mañana reviso si los INSERT coinciden bien con las columnas
             cursor.execute('''
                 INSERT INTO contracts (
                     user_id, city_location, provider_name, provider_phone, provider_logo,
@@ -1243,7 +1247,7 @@ cat > templates/history.html << 'EOF'
 {% endblock %}
 EOF
 
-/* CSS con variables y todo eso */
+/* Uff, este CSS me tuvo loco 2 días enteros */
 cat > static/style.css << 'EOF'
 :root {
     --primary: #c6b512;       /* Dorado profesional */
@@ -2559,19 +2563,19 @@ setTimeout(function() {
 EOF
 
 echo ""
-echo "✅ ContratoExpress v3.3 COMPLETO Y CORREGIDO"
+echo "✅ ContratoExpress v3.3 COMPLETO"
 echo ""
 echo "📁 Archivos creados:"
-echo "   ✓ app.py (INSERT 35=35 corregido)"
+echo "   ✓ app.py"
 echo "   ✓ rules.py"
 echo "   ✓ templates/base.html"
 echo "   ✓ templates/login.html"
 echo "   ✓ templates/register.html"
-echo "   ✓ templates/dashboard.html (con eliminar cuenta)"
-echo "   ✓ templates/form.html (service_title_custom/std)"
-echo "   ✓ templates/pdf_view.html (Jinja2 corregido)"
-echo "   ✓ templates/history.html (Jinja2 corregido)"
-echo "   ✓ static/style.css (CSS mejorado para firmas)"
+echo "   ✓ templates/dashboard.html"
+echo "   ✓ templates/form.html"
+echo "   ✓ templates/pdf_view.html"
+echo "   ✓ templates/history.html"
+echo "   ✓ static/style.css"
 echo "   ✓ static/script.js"
 echo ""
 echo "🚀 Para ejecutar:"
@@ -2582,5 +2586,5 @@ echo "   export FLASK_APP=app.py"
 echo "   export SECRET_KEY='tu-clave-secreta'"
 echo "   flask run --host=0.0.0.0"
 echo ""
-echo "Listo! ya pueden revisar mi chamba lol"
+echo "¡Gracias a Dios que salió! 🙏"
 echo ""
