@@ -11,8 +11,6 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-# El error de CSRF me hizo querer tirar la toalla, pero ya quedó
 csrf = CSRFProtect(app)
 
 def init_db():
@@ -92,8 +90,6 @@ def add_security_headers(response):
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-# Por fin arreglé lo del MIME, casi me rindo
 def validate_image_mime(file):
     file.seek(0)
     header = file.read(8)
@@ -191,9 +187,6 @@ def delete_account():
 @login_required
 def new_contract():
     if request.method == 'POST':
-        # Validaciones de integridad: Prestador no puede ser Cliente
-        # Uff, por fin logré que esto funcione. Me costó horrores evitar que el prestador y el cliente sean la misma persona.
-        # Al principio no lo validaba y generaba contratos raros. Espero que esto sea suficiente.
         nombre_prestador = request.form.get('provider_name', '').strip().lower()
         nombre_cliente = request.form.get('client_name', '').strip().lower()
         telefono_prestador = request.form.get('provider_phone', '').strip()
@@ -207,7 +200,6 @@ def new_contract():
             flash('Error: El número de teléfono del prestador no puede ser igual al del cliente.', 'error')
             return render_template('form.html', form_data=request.form.to_dict(flat=True))
         
-        # Determinar símbolo de moneda
         tipo_moneda = request.form.get('tipo_moneda', 'pesos')
         simbolo_moneda = '$'
         
@@ -290,7 +282,6 @@ def new_contract():
         conn = get_db()
         cursor = conn.cursor()
         try:
-            # Mañana reviso si los INSERT coinciden bien con las columnas
             cursor.execute('''
                 INSERT INTO contracts (
                     user_id, city_location, provider_name, provider_phone, provider_logo,
