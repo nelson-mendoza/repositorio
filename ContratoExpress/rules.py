@@ -12,7 +12,6 @@ def get_db():
 
 def validate_contract(data):
     errors = []
-    # validaciones basicas
     if len(data.get('provider_name', '')) < 3:
         errors.append("Nombre del prestador muy corto.")
     if len(data.get('client_name', '')) < 3:
