@@ -184,6 +184,7 @@ def init_db():
             sig_provider_name TEXT,
             sig_client_name TEXT,
             sig_witness_name TEXT,
+            currency_symbol TEXT DEFAULT '$',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
         )
@@ -308,6 +309,49 @@ def delete_account():
 @login_required
 def new_contract():
     if request.method == 'POST':
+        # Validaciones de integridad: Prestador no puede ser Cliente
+        nombre_prestador = request.form.get('provider_name', '').strip().lower()
+        nombre_cliente = request.form.get('client_name', '').strip().lower()
+        telefono_prestador = request.form.get('provider_phone', '').strip()
+        telefono_cliente = request.form.get('client_phone', '').strip()
+        
+        if nombre_prestador and nombre_cliente and nombre_prestador == nombre_cliente:
+            flash('Error: El nombre del prestador del servicio no puede ser igual al del cliente.', 'error')
+            return render_template('form.html', form_data=request.form.to_dict(flat=True))
+        
+        if telefono_prestador and telefono_cliente and telefono_prestador == telefono_cliente:
+            flash('Error: El número de teléfono del prestador no puede ser igual al del cliente.', 'error')
+            return render_template('form.html', form_data=request.form.to_dict(flat=True))
+        
+        # Determinar símbolo de moneda
+        tipo_moneda = request.form.get('tipo_moneda', 'pesos')
+        simbolo_moneda = '$'
+        
+        if tipo_moneda == 'usd':
+            simbolo_moneda = 'USD $'
+        elif tipo_moneda == 'eur':
+            simbolo_moneda = 'EUR €'
+        elif tipo_moneda == 'gbp':
+            simbolo_moneda = 'GBP £'
+        elif tipo_moneda == 'mxn':
+            simbolo_moneda = 'MXN $'
+        elif tipo_moneda == 'cop':
+            simbolo_moneda = 'COP $'
+        elif tipo_moneda == 'ars':
+            simbolo_moneda = 'ARS $'
+        elif tipo_moneda == 'clp':
+            simbolo_moneda = 'CLP $'
+        elif tipo_moneda == 'pen':
+            simbolo_moneda = 'PEN S/'
+        elif tipo_moneda == 'uyu':
+            simbolo_moneda = 'UYU $U'
+        elif tipo_moneda == 'btc':
+            simbolo_moneda = '₿'
+        elif tipo_moneda == 'eth':
+            simbolo_moneda = 'Ξ'
+        elif tipo_moneda == 'otra':
+            simbolo_moneda = request.form.get('moneda_personalizada', '$') or '$'
+        
         errors = validate_contract(request.form.to_dict(flat=True))
         
         logo_filename = None
@@ -362,7 +406,7 @@ def new_contract():
         conn = get_db()
         cursor = conn.cursor()
         try:
-            # ✅ CORREGIDO: 35 columnas, 35 valores exactos
+            # ✅ CORREGIDO: 36 columnas, 36 valores exactos (agregado currency_symbol)
             cursor.execute('''
                 INSERT INTO contracts (
                     user_id, city_location, provider_name, provider_phone, provider_logo,
@@ -372,8 +416,8 @@ def new_contract():
                     payment_method, bank_details, crypto_wallet, other_method, deadline, penalty_rate,
                     rfc_provider, rfc_client, address_provider, address_client, email_client,
                     witness_name, include_confidentiality, include_signatures,
-                    sig_provider_name, sig_client_name, sig_witness_name
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    sig_provider_name, sig_client_name, sig_witness_name, currency_symbol
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 session['user_id'], request.form.get('city_location'),
                 request.form.get('provider_name'), request.form.get('provider_phone'), logo_filename,
@@ -391,7 +435,7 @@ def new_contract():
                 1 if request.form.get('include_confidentiality') else 0,
                 1 if request.form.get('include_signatures') else 0,
                 request.form.get('sig_provider_name'), request.form.get('sig_client_name'),
-                request.form.get('sig_witness_name')
+                request.form.get('sig_witness_name'), simbolo_moneda
             ))
             conn.commit()
             contract_id = cursor.lastrowid
@@ -544,13 +588,13 @@ cat > templates/login.html << 'EOF'
             <h2>¿Qué es ContratoExpress?</h2>
         </div>
         <div class="modal-body">
-            <p><strong>ContratoExpress</strong> es un generador de contratos profesionales diseñado para servicios simples y profesionales.</p>
+            <p><strong>ContratoExpress</strong> es un generador de contratos para servicios simples diseñado para técnicos, electricistas, plomeros, tutores y freelancers.</p>
             <div class="feature-list">
                 <div class="feature-item">
                     <i class="fas fa-bolt"></i>
                     <div>
                         <h4>Rápido y Sencillo</h4>
-                        <p>Crea contratos profesionales en minutos con solo unos clicks.</p>
+                        <p>Crea contratos para servicios simples en minutos con solo unos clicks.</p>
                     </div>
                 </div>
                 <div class="feature-item">
@@ -588,7 +632,7 @@ cat > templates/register.html << 'EOF'
             <i class="fas fa-file-contract"></i>
         </div>
         <h1>Crea tu cuenta</h1>
-        <p class="subtitle">Comienza a generar contratos profesionales</p>
+        <p class="subtitle">Comienza a generar contratos para servicios simples</p>
     </div>
     <form method="POST" class="auth-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -635,13 +679,13 @@ cat > templates/register.html << 'EOF'
             <h2>¿Qué es ContratoExpress?</h2>
         </div>
         <div class="modal-body">
-            <p><strong>ContratoExpress</strong> es un generador de contratos profesionales diseñado para servicios simples y profesionales.</p>
+            <p><strong>ContratoExpress</strong> es un generador de contratos para servicios simples diseñado para técnicos, electricistas, plomeros, tutores y freelancers.</p>
             <div class="feature-list">
                 <div class="feature-item">
                     <i class="fas fa-bolt"></i>
                     <div>
                         <h4>Rápido y Sencillo</h4>
-                        <p>Crea contratos profesionales en minutos con solo unos clicks.</p>
+                        <p>Crea contratos para servicios simples en minutos con solo unos clicks.</p>
                     </div>
                 </div>
                 <div class="feature-item">
@@ -744,7 +788,7 @@ cat > templates/form.html << 'EOF'
 {% block content %}
 <div class="form-container">
     <div class="form-header">
-        <h1><i class="fas fa-file-signature"></i> Generador de Contratos</h1>
+        <h1><i class="fas fa-file-signature"></i> Generador de Contratos para Servicios Simples</h1>
         <p>Completa los datos para generar tu contrato profesional</p>
     </div>
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -856,15 +900,37 @@ cat > templates/form.html << 'EOF'
             </div>
             <div class="form-row grid-3">
                 <div class="form-group">
-                    <label for="totalAmount">Monto Total ($)</label>
+                    <label for="currencyType">Moneda</label>
+                    <select id="currencyType" name="tipo_moneda" onchange="toggleCustomCurrency()">
+                        <option value="pesos" {{ 'selected' if form_data and form_data.get('tipo_moneda') == 'pesos' else '' }}>Pesos ($)</option>
+                        <option value="usd" {{ 'selected' if form_data and form_data.get('tipo_moneda') == 'usd' else '' }}>Dólares (USD $)</option>
+                        <option value="eur" {{ 'selected' if form_data and form_data.get('tipo_moneda') == 'eur' else '' }}>Euros (EUR €)</option>
+                        <option value="gbp" {{ 'selected' if form_data and form_data.get('tipo_moneda') == 'gbp' else '' }}>Libras (GBP £)</option>
+                        <option value="mxn" {{ 'selected' if form_data and form_data.get('tipo_moneda') == 'mxn' else '' }}>MXN ($)</option>
+                        <option value="cop" {{ 'selected' if form_data and form_data.get('tipo_moneda') == 'cop' else '' }}>COP ($)</option>
+                        <option value="ars" {{ 'selected' if form_data and form_data.get('tipo_moneda') == 'ars' else '' }}>ARS ($)</option>
+                        <option value="clp" {{ 'selected' if form_data and form_data.get('tipo_moneda') == 'clp' else '' }}>CLP ($)</option>
+                        <option value="pen" {{ 'selected' if form_data and form_data.get('tipo_moneda') == 'pen' else '' }}>PEN (S/)</option>
+                        <option value="uyu" {{ 'selected' if form_data and form_data.get('tipo_moneda') == 'uyu' else '' }}>UYU ($U)</option>
+                        <option value="btc" {{ 'selected' if form_data and form_data.get('tipo_moneda') == 'btc' else '' }}>Bitcoin (₿)</option>
+                        <option value="eth" {{ 'selected' if form_data and form_data.get('tipo_moneda') == 'eth' else '' }}>Ethereum (Ξ)</option>
+                        <option value="otra" {{ 'selected' if form_data and form_data.get('tipo_moneda') == 'otra' else '' }}>Otra...</option>
+                    </select>
+                </div>
+                <div class="form-group" id="customCurrencyDiv" style="display: {{ 'none' if not form_data or form_data.get('tipo_moneda') != 'otra' else 'block' }}">
+                    <label for="customCurrency">Símbolo personalizado</label>
+                    <input type="text" id="customCurrency" name="moneda_personalizada" value="{{ form_data.get('moneda_personalizada', '') if form_data else '' }}" placeholder="Ej: ¥, ₺, ₽...">
+                </div>
+                <div class="form-group">
+                    <label for="totalAmount">Monto Total</label>
                     <input type="number" id="totalAmount" name="total_amount" step="0.01" value="{{ form_data.get('total_amount', '') if form_data else '' }}" oninput="calcRemaining()" required>
                 </div>
                 <div class="form-group" id="advanceDiv" style="display: {{ 'none' if not form_data or form_data.get('payment_structure') == 'single' else 'block' }}">
-                    <label for="advanceAmount">Anticipo ($)</label>
+                    <label for="advanceAmount">Anticipo</label>
                     <input type="number" id="advanceAmount" name="advance_amount" step="0.01" value="{{ form_data.get('advance_amount', '') if form_data else '' }}" oninput="calcRemaining()">
                 </div>
                 <div class="form-group" id="remainingDiv" style="display: {{ 'none' if not form_data or form_data.get('payment_structure') == 'single' else 'block' }}">
-                    <label for="remainingAmount">Resto ($)</label>
+                    <label for="remainingAmount">Resto</label>
                     <input type="number" id="remainingAmount" name="remaining_amount" step="0.01" readonly>
                 </div>
             </div>
@@ -1037,9 +1103,10 @@ cat > templates/pdf_view.html << 'EOF'
     </div>
     <div class="pdf-section">
         <h3>TERCERA. HONORARIOS Y FORMA DE PAGO</h3>
-        <p>El costo total del servicio es de <strong class="highlight">${{ "%.2f"|format(contract.total_amount) }}</strong> ({{ contract.total_amount|int }} pesos {{ "%.0f"|format((contract.total_amount % 1) * 100) }}/100 M.N.).</p>
+        {% set currency = contract.currency_symbol if contract.currency_symbol else '$' %}
+        <p>El costo total del servicio es de <strong class="highlight">{{ currency }}{{ "%.2f"|format(contract.total_amount) }}</strong> ({{ contract.total_amount|int }} {{ "pesos" if contract.currency_symbol in ['$','MXN $','COP $','ARS $','CLP $','UYU $U'] else "unidades" }} {{ "%.0f"|format((contract.total_amount % 1) * 100) }}/100 M.N.).</p>
         {% if contract.payment_structure == 'advance' %}
-            <p><strong>Forma de pago:</strong> Se establece un anticipo de ${{ "%.2f"|format(contract.advance_amount) }} al firmar el presente contrato, y el resto (${{ "%.2f"|format(contract.remaining_amount) }}) al finalizar el servicio.</p>
+            <p><strong>Forma de pago:</strong> Se establece un anticipo de {{ currency }}{{ "%.2f"|format(contract.advance_amount) }} al firmar el presente contrato, y el resto ({{ currency }}{{ "%.2f"|format(contract.remaining_amount) }}) al finalizar el servicio.</p>
         {% elif contract.payment_structure == 'partial' %}
             <p><strong>Forma de pago:</strong> Pagos parciales según avance del servicio.</p>
         {% else %}
@@ -1144,7 +1211,8 @@ cat > templates/history.html << 'EOF'
                     <p class="client-name"><i class="fas fa-user"></i> {{ c.client_name }}</p>
                     <div class="contract-meta">
                         <span><i class="fas fa-calendar"></i> {{ (c.created_at|string)[:10] }}</span>
-                        <span><i class="fas fa-dollar-sign"></i> ${{ "%.2f"|format(c.total_amount) }}</span>
+                        {% set cur = c.currency_symbol if c.currency_symbol else '$' %}
+                        <span><i class="fas fa-coins"></i> {{ cur }}{{ "%.2f"|format(c.total_amount) }}</span>
                     </div>
                 </div>
                 <div class="contract-actions">
@@ -2432,6 +2500,12 @@ function toggleSignatureNames() {
     const checkbox = document.getElementById('includeSignatures');
     const namesDiv = document.getElementById('signatureNames');
     namesDiv.style.display = checkbox.checked ? 'grid' : 'none';
+}
+
+function toggleCustomCurrency() {
+    const currencyType = document.getElementById('currencyType').value;
+    const customDiv = document.getElementById('customCurrencyDiv');
+    customDiv.style.display = currencyType === 'otra' ? 'block' : 'none';
 }
 
 function previewLogo(input) {
