@@ -1,16 +1,18 @@
-# ContratoExpress - Generador Profesional de Contratos para Servicios Simples
+# ContratoExpress v3.3 - Generador Profesional de Contratos para Servicios Simples
 
 #### Video Demo: <URL HERE>
 
 #### Description:
 
-ContratoExpress es una aplicación web full-stack desarrollada con Flask como proyecto final para el curso CS50 de Harvard. Esta herramienta está diseñada específicamente para técnicos, electricistas, plomeros, tutores, freelancers y cualquier profesional que necesite documentar acuerdos de servicios simples de manera rápida, profesional y legalmente válida.
+ContratoExpress v3.3 es una aplicación web full-stack desarrollada con Flask como proyecto final para el curso CS50 de Harvard. Esta herramienta está diseñada específicamente para técnicos, electricistas, plomeros, tutores, freelancers y cualquier profesional que necesite documentar acuerdos de servicios simples de manera rápida, profesional y legalmente válida.
 
 ## Sobre el Autor y Contexto del Proyecto
 
 Soy profesional certificado en áreas de ciberseguridad y programación, con formación técnica universitaria en curso. Decidí tomar CS50 no por necesidad de aprender conceptos básicos —ya domino Python, desarrollo web, seguridad de aplicaciones y arquitectura de software— sino por el prestigio académico de Harvard y para validar mis conocimientos bajo un estándar internacional reconocido. 
 
 Este proyecto fue completado en menos de una semana, comprimiendo lo que normalmente sería un desarrollo de varias semanas. Esta aceleración no es imprudencia; es el resultado de años de experiencia práctica construyendo sistemas de producción. Cada decisión arquitectónica aquí presente fue deliberada, probada y justificada técnicamente. No hay código de relleno, no hay características innecesarias: cada línea tiene un propósito definido y cumple estándares profesionales de la industria.
+
+Tomé el curso completo de 10 semanas y lo completé en tiempo récord porque cuando tienes fundamentos sólidos en ciberseguridad y desarrollo, puedes identificar rápidamente qué conceptos son esenciales y cuáles son redundantes para tu nivel. Esto no es arrogancia; es eficiencia basada en competencia demostrada.
 
 ## ¿Qué problema resuelve?
 
@@ -160,6 +162,8 @@ JavaScript vanilla sin dependencias externas:
 
 5. **Path traversal prevention**: Los nombres de archivo subidos son sanitizados, y se rechazan paths con `..` o que inicien con `/` en la ruta de serving.
 
+6. **Integridad de datos entre partes**: La validación que impide que prestador y cliente sean la misma persona fue crítica. Inicialmente no la implementé y generaba contratos lógicamente inválidos. Tuve que añadir verificaciones tanto por nombre como por teléfono para cubrir casos edge.
+
 ## Cómo Ejecutar el Proyecto
 
 ```bash
@@ -183,6 +187,6 @@ Para producción, usar Gunicorn detrás de Nginx, HTTPS obligatorio, y variable 
 
 ## Conclusión
 
-ContratoExpress demuestra dominio práctico de desarrollo web seguro, arquitectura de software limpia y atención al detalle en UX. No es solo un requisito académico cumplido; es una herramienta funcional lista para uso real. La velocidad de ejecución (menos de una semana para completar 10 semanas de contenido) refleja experiencia previa sólida, no atajos en calidad. Cada característica fue probada, cada vulnerabilidad potencial considerada, cada línea de código justificada.
+ContratoExpress v3.3 demuestra dominio práctico de desarrollo web seguro, arquitectura de software limpia y atención al detalle en UX. No es solo un requisito académico cumplido; es una herramienta funcional lista para uso real. La velocidad de ejecución (menos de una semana para completar 10 semanas de contenido) refleja experiencia previa sólida, no atajos en calidad. Cada característica fue probada, cada vulnerabilidad potencial considerada, cada línea de código justificada.
 
-Este proyecto está disponible bajo licencia abierta para quien quiera auditar el código, aprender de las decisiones tomadas o usarlo como base para sus propias soluciones.
+Este proyecto está disponible bajo licencia abierta para quien quiera auditar el código, aprender de las decisiones tomadas o usarlo como base para sus propias soluciones. Como profesional de ciberseguridad, invito a cualquiera a revisar el código críticamente —la seguridad por oscuridad no es seguridad, y el código abierto permite auditoría comunitaria que fortalece el producto final.
