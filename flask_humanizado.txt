@@ -1234,18 +1234,18 @@ EOF
 
 cat > static/style.css << 'EOF'
 :root {
-    --primary: #c6b512;       /* Dorado profesional */
+    --primary: #c6b512;
     --primary-dark: #a89b10;
     --primary-light: #e0cf25;
-    --secondary: #546e7a;     /* Gris azulado neutro */
-    --success: #2e7d32;       /* Verde bosque */
-    --warning: #ed6c02;       /* Naranja oscuro */
-    --danger: #c62828;        /* Rojo ladrillo */
-    --text-primary: #ffffff;  /* Blanco puro para máxima legibilidad */
-    --text-secondary: #ffffff; /* Blanco puro para máxima legibilidad */
-    --card-bg: #1e252b;        /* Fondo tarjetas gris oscuro neutro */
-    --bg-main: #121619;        /* Fondo principal casi negro */
-    --border-color: #37474f;   /* Bordes sutiles */
+    --secondary: #546e7a;
+    --success: #2e7d32;
+    --warning: #ed6c02;
+    --danger: #c62828;
+    --text-primary: #ffffff;
+    --text-secondary: #ffffff;
+    --card-bg: #1e252b;
+    --bg-main: #121619;
+    --border-color: #37474f;
     --shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
     --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.5);
 }
@@ -1964,7 +1964,7 @@ body {
     margin-bottom: 1.5rem;
 }
 
-/* ✅ CSS MEJORADO PARA CAMPOS DE FIRMA */
+/* Signature input field styles */
 .signature-inputs {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -2318,7 +2318,7 @@ body {
         padding: 0;
     }
     
-    /* Forzar salto de página antes de las firmas y centrar contenido en nueva hoja */
+    /* Force page break before signatures section */
     .signatures-section {
         page-break-before: always;
         break-before: page;
