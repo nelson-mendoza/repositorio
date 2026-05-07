@@ -2243,27 +2243,18 @@ body {
 }
 
 @media print {
-    /* Ocultar elementos de navegación */
     .navbar, .pdf-toolbar, button, a, .help-btn, .theme-toggle, .logout-btn {
         display: none !important;
     }
     
-    /* Forzar una sola página - Configuración crítica */
     body, html {
         background: #ffffff !important;
         color: #000000 !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        width: 100% !important;
-        height: 100% !important;
-        overflow: hidden !important;
     }
     
     .main-content {
         padding: 0 !important;
         background: #ffffff !important;
-        margin: 0 !important;
-        width: 100% !important;
     }
     
     .pdf-document {
@@ -2271,10 +2262,6 @@ body {
         padding: 0 !important;
         max-width: 100% !important;
         background: #ffffff !important;
-        margin: 0 !important;
-        width: 100% !important;
-        transform: scale(0.85) !important;
-        transform-origin: top center !important;
     }
     
     .page {
@@ -2282,33 +2269,18 @@ body {
         color: #000000 !important;
         border: 1px solid #000000 !important;
         box-shadow: none !important;
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-        margin: 0 !important;
-        padding: 1cm !important;
-        width: 100% !important;
-        max-height: 29.7cm !important;
-        overflow: hidden !important;
     }
     
     /* Forzar texto negro en todos los elementos */
-    p, h1, h2, h3, h4, h5, h6, span, div, label, strong, b, em, i, td, th, li {
+    p, h1, h2, h3, h4, h5, h6, span, div, label, strong, b, em, i {
         color: #000000 !important;
         background: transparent !important;
-        font-size: 10pt !important;
-        line-height: 1.2 !important;
     }
-    
-    /* Títulos más pequeños */
-    h1 { font-size: 14pt !important; }
-    h2 { font-size: 12pt !important; }
-    h3 { font-size: 11pt !important; }
     
     /* Forzar bordes negros en secciones */
     .contract-header, .contract-body, .contract-footer, .section, .clause, .signature-section {
         border-color: #000000 !important;
         background: #ffffff !important;
-        page-break-inside: avoid !important;
     }
     
     /* Logo visible pero en contexto formal */
@@ -2327,16 +2299,9 @@ body {
         text-shadow: none !important;
     }
     
-    /* Configurar página única forzada */
+    /* Asegurar márgenes de impresión */
     @page {
-        size: A4 portrait;
-        margin: 1cm;
-    }
-    
-    /* Prevenir saltos de página */
-    .contract-content, .contract-parties, .contract-clauses, .signatures {
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
+        margin: 2cm;
     }
 }
 EOF
