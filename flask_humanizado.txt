@@ -2265,6 +2265,14 @@ body {
         padding: 0;
     }
     
+    /* Forzar salto de página antes de las firmas y centrar contenido en nueva hoja */
+    .signatures-section {
+        page-break-before: always;
+        break-before: page;
+        margin-top: 3rem;
+        padding-top: 3rem;
+    }
+    
     .pdf-header {
         border-bottom-color: #000000;
     }
