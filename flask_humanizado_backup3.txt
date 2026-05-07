@@ -2242,111 +2242,6 @@ body {
     }
 }
 
-/* ========================================
-   ESTILOS FORMALES PARA VISTA PREVIA DE PDF
-   (Se aplican SIEMPRE en .pdf-document)
-   ======================================== */
-
-.pdf-document {
-    box-shadow: none !important;
-    padding: 0 !important;
-    max-width: 100% !important;
-    background: #ffffff !important;
-    margin: 0 !important;
-    width: 100% !important;
-    transform: scale(0.85) !important;
-    transform-origin: top center !important;
-}
-
-.pdf-document .page {
-    background: #ffffff !important;
-    color: #000000 !important;
-    border: 1px solid #000000 !important;
-    box-shadow: none !important;
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-    margin: 0 !important;
-    padding: 1cm !important;
-    width: 100% !important;
-    max-height: 29.7cm !important;
-    overflow: hidden !important;
-}
-
-/* Forzar texto negro en todos los elementos del PDF */
-.pdf-document p, 
-.pdf-document h1, 
-.pdf-document h2, 
-.pdf-document h3, 
-.pdf-document h4, 
-.pdf-document h5, 
-.pdf-document h6, 
-.pdf-document span, 
-.pdf-document div, 
-.pdf-document label, 
-.pdf-document strong, 
-.pdf-document b, 
-.pdf-document em, 
-.pdf-document i, 
-.pdf-document td, 
-.pdf-document th, 
-.pdf-document li {
-    color: #000000 !important;
-    background: transparent !important;
-    font-size: 10pt !important;
-    line-height: 1.2 !important;
-}
-
-/* Títulos más pequeños */
-.pdf-document h1 { font-size: 14pt !important; }
-.pdf-document h2 { font-size: 12pt !important; }
-.pdf-document h3 { font-size: 11pt !important; }
-
-/* Forzar bordes negros en secciones */
-.pdf-document .contract-header, 
-.pdf-document .contract-body, 
-.pdf-document .contract-footer, 
-.pdf-document .section, 
-.pdf-document .clause, 
-.pdf-document .signature-section {
-    border-color: #000000 !important;
-    background: #ffffff !important;
-    page-break-inside: avoid !important;
-}
-
-/* Logo visible pero en contexto formal */
-.pdf-document .logo-container {
-    background: #ffffff !important;
-}
-
-.pdf-document .logo-placeholder {
-    border-color: #000000 !important;
-    color: #000000 !important;
-}
-
-/* Eliminar cualquier sombra o efecto visual */
-.pdf-document * {
-    box-shadow: none !important;
-    text-shadow: none !important;
-}
-
-/* Configurar página única forzada */
-@page {
-    size: A4 portrait;
-    margin: 1cm;
-}
-
-/* Prevenir saltos de página */
-.pdf-document .contract-content, 
-.pdf-document .contract-parties, 
-.pdf-document .contract-clauses, 
-.pdf-document .signatures {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-}
-
-/* ========================================
-   MEDIA PRINT (ajustes específicos de impresora)
-   ======================================== */
 @media print {
     /* Ocultar elementos de navegación */
     .navbar, .pdf-toolbar, button, a, .help-btn, .theme-toggle, .logout-btn {
@@ -2371,7 +2266,6 @@ body {
         width: 100% !important;
     }
     
-    /* Reafirmar estilos formales para impresión */
     .pdf-document {
         box-shadow: none !important;
         padding: 0 !important;
@@ -2431,6 +2325,12 @@ body {
     * {
         box-shadow: none !important;
         text-shadow: none !important;
+    }
+    
+    /* Configurar página única forzada */
+    @page {
+        size: A4 portrait;
+        margin: 1cm;
     }
     
     /* Prevenir saltos de página */
