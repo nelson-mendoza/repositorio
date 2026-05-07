@@ -1,41 +1,107 @@
-# ContratoExpress v3.3: Generador Inteligente de Contratos de Servicios Profesionales
+# 📋 ContratoExpress v3.3
+## Generador Inteligente de Contratos de Servicios Profesionales
 
-#### Video Demo:  <INSERTA AQUÍ LA URL DE TU VIDEO DE YOUTUBE/LOOM>
+> ¿Cansado de perder horas redactando contratos? ContratoExpress automatiza todo el proceso para que te enfoques en lo que realmente importa.
 
-#### Descripción:
-
-**ContratoExpress v3.3** es una aplicación web completa desarrollada con el framework **Flask** de Python, diseñada para automatizar y simplificar la creación de contratos de servicios profesionales legalmente robustos. En un entorno donde los freelancers, consultores y pequeñas agencias a menudo pierden tiempo valioso redactando documentos legales desde cero o utilizando plantillas genéricas inseguras, esta herramienta ofrece una solución dinámica, segura y adaptable a múltiples jurisdicciones y monedas. El proyecto no solo genera texto, sino que construye un flujo de trabajo integral que incluye autenticación de usuarios, validación de datos en tiempo real, personalización de marca (logotipos), y generación de documentos finales en formatos listos para imprimir (HTML/PDF) con soporte para firmas digitales.
-
-### Funcionalidades Principales
-
-El núcleo de la aplicación reside en su capacidad para interactuar con el usuario mediante un formulario intuitivo que captura todos los detalles esenciales de un acuerdo comercial: identificación de las partes (contratista y cliente), alcance del trabajo, cronograma de pagos, cláusulas específicas y selección de moneda. A diferencia de un simple procesador de textos, ContratoExpress implementa un motor de validación backend riguroso (`rules.py`) que asegura la integridad de los datos antes de cualquier procesamiento. 
-
-Una de las características más destacadas es su soporte **multi-moneda**, permitiendo a los usuarios generar contratos en USD, EUR, GBP, entre otras, con el símbolo correcto y formato numérico apropiado. Además, el sistema incluye un módulo de **gestión de activos** que permite a los usuarios subir sus propios logotipos corporativos, los cuales se incrustan dinámicamente en el encabezado del contrato generado, aportando un nivel de profesionalismo esencial para la imagen de marca.
-
-La seguridad es una prioridad en la arquitectura de ContratoExpress. La aplicación cuenta con un sistema de **autenticación de usuarios** completo, que incluye registro, inicio de sesión seguro con hash de contraseñas (utilizando `werkzeug.security`), y gestión de sesiones. Esto garantiza que cada usuario tenga acceso exclusivo a su propio historial de contratos guardados. El historial permite revisar, visualizar o volver a descargar contratos generados anteriormente, facilitando la administración documental a lo largo del tiempo.
-
-### Estructura del Proyecto y Archivos
-
-El proyecto está organizado siguiendo las mejores prácticas de desarrollo web modular en Python:
-
-*   **`app.py`**: Es el cerebro de la aplicación. Contiene todas las rutas (endpoints) necesarias para el funcionamiento del sitio. Gestiona la lógica de negocio, incluyendo el manejo de formularios, la interacción con la base de datos SQLite, la subida de archivos (logos) y la renderizado de plantillas. Aquí se encuentra la lógica para generar el HTML final del contrato inyectando las variables del usuario en la plantilla maestra.
-*   **`rules.py`**: Este módulo separa la lógica de validación del controlador principal. Define funciones estrictas para verificar emails, formatos de moneda, longitudes de texto y reglas de negocio específicas (por ejemplo, asegurar que las fechas de fin sean posteriores a las de inicio). Esta separación de preocupaciones hace que el código sea más limpio, mantenible y fácil de testear.
-*   **`templates/`**: Directorio que alberga los archivos HTML. Incluye `layout.html` (la plantilla base con la navegación y estilos globales), `login.html`, `register.html`, `index.html` (el dashboard), `new_contract.html` (el formulario de entrada) y `contract_template.html` (el diseño visual exacto del contrato generado). Se utilizó **Jinja2**, el motor de plantillas de Flask, para la herencia de plantillas y la inyección dinámica de datos.
-*   **`static/`**: Contiene los archivos CSS personalizados para dar una apariencia moderna y responsiva, así como las carpetas de subida para los logotipos de los usuarios.
-*   **`requirements.txt`**: Lista las dependencias externas necesarias, principalmente `Flask`, `Werkzeug` para seguridad, y librerías auxiliares para el manejo de imágenes y PDFs.
-*   **`flask_humanizado.txt`**: Script maestro utilizado para generar la estructura inicial y el código base de este proyecto, demostrando la capacidad de automatización en la creación de software.
-
-### Decisiones de Diseño y Desafíos Técnicos
-
-Durante el desarrollo, se tomaron varias decisiones arquitectónicas clave. Se optó por **SQLite** como sistema de gestión de bases de datos debido a su ligereza y portabilidad; no requiere configuración de servidores externos, lo que hace que el proyecto sea fácil de desplegar y probar en entornos locales sin complicaciones de infraestructura. Para el almacenamiento de archivos (logos), se implementó un sistema de nombres únicos basado en timestamps para evitar colisiones de archivos, asegurando que cada usuario mantenga su identidad visual sin sobrescribir la de otros.
-
-Un desafío significativo fue la generación del documento final. Inicialmente se consideró el uso de librerías pesadas de generación de PDF directas desde Python. Sin embargo, se decidió optar por una estrategia híbrida: generar primero un **HTML altamente estilizado** con CSS específico para impresión (`@media print`). Esto permite que el usuario utilice la función nativa "Guardar como PDF" del navegador, lo cual ofrece una fidelidad visual superior y mayor control sobre el resultado final sin depender de motores de renderizado externos complejos que a menudo rompen el diseño.
-
-Otra decisión importante fue la implementación de validaciones tanto en el frontend (JavaScript) como en el backend (Python). Aunque la validación del lado del cliente mejora la experiencia de usuario al ofrecer retroalimentación inmediata, se reforzó toda la lógica en el servidor (`rules.py`) para prevenir cualquier intento de inyección de datos malformados o malintencionados, siguiendo el principio de "nunca confiar en la entrada del usuario".
-
-### Conclusión
-
-ContratoExpress v3.3 demuestra cómo la tecnología web moderna puede resolver problemas cotidianos del mundo profesional. Combina una interfaz amigable con una lógica de backend sólida, ofreciendo una herramienta que no solo ahorra tiempo, sino que eleva la calidad percibida de los servicios de quienes la utilizan. El proyecto sirve como un testimonio de la versatilidad de Python y Flask para construir aplicaciones full-stack funcionales, seguras y escalables.
+#### 🎥 Demo en video:  
+<INSERTA AQUÍ LA URL DE TU VIDEO DE YOUTUBE/LOOM>
 
 ---
-*Proyecto desarrollado como parte del curso CS50x de Harvard.*
+
+## 🚀 ¿Qué es ContratoExpress?
+
+**ContratoExpress v3.3** es una aplicación web creada con **Flask** y Python que te permite generar contratos profesionales de servicios en cuestión de minutos. Sin complicaciones, sin plantillas genéricas... solo datos reales que se convierten en documentos listos para usar.
+
+Piensa en ella como tu asistente legal que entiende de negocios. Llenas un formulario amigable, presionas un botón, y listo: tienes un contrato personalizado en PDF.
+
+---
+
+## ✨ Lo que hace especial a ContratoExpress
+
+### 💼 Formulario Inteligente
+Captura todos los detalles que realmente importan: quiénes son las partes, qué se acuerda, cuánto se paga, y bajo qué condiciones. Nada más, nada menos.
+
+### 💱 Multi-moneda (¿Trabajas internacionalmente?)
+Genera contratos en USD, EUR, GBP y más. Cada moneda con su símbolo correcto y formato numérico apropiado. Porque los detalles importan cuando hablamos de dinero.
+
+### 🔐 Seguridad desde el primer día
+- Registro e inicio de sesión con contraseñas encriptadas
+- Tus contratos no son visibles para otros usuarios
+- Validaciones en frontend y backend (no confiamos en nadie)
+
+### 📱 Interfaz moderna y responsiva
+Se ve bien en desktop, tablet o celular. Porque los contratos no esperan a que llegues a una oficina.
+
+---
+
+## 🏗️ Cómo está construido
+
+El proyecto sigue una estructura limpia y modular. Aquí está el desglose:
+
+```
+repositorio/
+├── app.py                 # El corazón de todo
+├── rules.py              # Validaciones estrictas
+├── requirements.txt      # Dependencias necesarias
+├── templates/            # Plantillas HTML
+│   ├── layout.html       # Base + navegación
+│   ├── login.html
+│   ├── register.html
+│   └── index.html        # El formulario principal
+└── static/               # CSS y subidas de usuarios
+    └── uploads/          # Logos de clientes
+```
+
+**`app.py`** → Es donde sucede la magia. Define todas las rutas de la aplicación, maneja formularios, gestiona usuarios y genera los contratos finales.
+
+**`rules.py`** → Separa la lógica de validación. Verifica emails, monedas, longitudes de texto... todo lo que puede salir mal. Mejor prevenir que lamentar.
+
+**`templates/`** → El frontend. Plantillas HTML que Flask renderiza dinámicamente. `layout.html` es la base común (navegación, estilos globales), y el resto son vistas específicas.
+
+**`static/`** → CSS personalizado y la carpeta donde los usuarios suben sus logos. Todo para que cada contrato luzca profesional.
+
+**`requirements.txt`** → Las dependencias. Principalmente Flask, Werkzeug para seguridad, y librerías para PDFs e imágenes.
+
+---
+
+## 🤔 Decisiones de Diseño y Aprendizajes
+
+### Por qué SQLite y no una base de datos "seria"
+
+Al principio pensé en PostgreSQL o MySQL. Pero aquí está la verdad: SQLite es *perfecto* para aplicaciones medianas. Es ligero, no requiere configuración de servidor, y es portátil. El archivo `.db` es tu base de datos completa. Para una app como esta, es suficiente y elegante.
+
+### El desafío de los PDFs
+
+La primera idea fue usar librerías pesadas de generación de PDF en Python. Funcionaría, pero sería lento y complicado.
+
+La solución: **generar HTML limpio y dejar que el navegador lo convierta a PDF**. Más rápido, más simple, y el usuario controla el resultado. Fue una buena decisión.
+
+### Validación en dos puntos
+
+Validamos en el frontend (JavaScript) para una experiencia fluida, *pero también en el backend* (Python). Porque no confiar en el navegador es regla número 1 en seguridad web.
+
+---
+
+## 📈 Cómo usar ContratoExpress
+
+1. **Crea una cuenta** → Registro simple con email y contraseña
+2. **Llena el formulario** → Datos de las partes, servicios, moneda, términos
+3. **Descarga tu contrato** → En PDF, listo para usar o ajustar
+
+---
+
+## 🎓 El Contexto
+
+Este proyecto fue desarrollado como parte del curso **CS50x de Harvard**. Un excelente ejercicio de cómo la tecnología web moderna puede resolver problemas reales del mundo profesional.
+
+---
+
+## 💡 Lecciones Aprendidas
+
+- **La simplicidad escala mejor que la complejidad** → Una app enfocada es más útil que una que intenta hacerlo todo
+- **La validación en dos capas es no-negociable** → Nunca confíes en el cliente
+- **Los usuarios agradecen las decisiones por ellos** → Un buen UI/UX elimina dudas
+
+---
+
+¿Preguntas? Sugerencias? Este proyecto está aquí para crecer. 🚀
