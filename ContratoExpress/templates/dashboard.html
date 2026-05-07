@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - ContratoExpress{% endblock %}
+{% block content %}
+<div class="dashboard">
+    <div class="welcome-section">
+        <h1>¡Hola, {{ session.username }}! 👋</h1>
+        <p>Bienvenido a <strong>ContratoExpress</strong>. Gestiona tus contratos de forma rápida y profesional.</p>
+    </div>
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon blue">
+                <i class="fas fa-file-contract"></i>
+            </div>
+            <div class="stat-info">
+                <h3>Contratos Activos</h3>
+                <p>Gestiona todos tus documentos</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green">
+                <i class="fas fa-bolt"></i>
+            </div>
+            <div class="stat-info">
+                <h4>Rápido</h4>
+                <p>Crea contratos en minutos</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon purple">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <div class="stat-info">
+                <h4>Seguro</h4>
+                <p>Tus datos están protegidos</p>
+            </div>
+        </div>
+    </div>
+    <div class="quick-actions">
+        <h2>Acciones Rápidas</h2>
+        <div class="action-grid">
+            <a href="{{ url_for('new_contract') }}" class="action-card primary">
+                <i class="fas fa-plus-circle"></i>
+                <h3>Nuevo Contrato</h3>
+                <p>Crea un contrato profesional desde cero</p>
+            </a>
+            <a href="{{ url_for('history') }}" class="action-card secondary">
+                <i class="fas fa-history"></i>
+                <h3>Ver Historial</h3>
+                <p>Consulta tus contratos anteriores</p>
+            </a>
+        </div>
+    </div>
+    <div class="account-settings">
+        <h2>Zona de Peligro</h2>
+        <div class="danger-zone">
+            <p>Eliminar tu cuenta es irreversible. Se borrarán todos tus contratos y datos.</p>
+            <form action="{{ url_for('delete_account') }}" method="POST" onsubmit="return confirm('¿ESTÁS SEGURO? Esta acción no se puede deshacer.');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn-danger">
+                    <i class="fas fa-trash-alt"></i> Eliminar Mi Cuenta
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
