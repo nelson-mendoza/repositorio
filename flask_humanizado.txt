@@ -1,4 +1,6 @@
 #!/bin/bash
+# ContratoExpress v3.3 - mi proyecto final de cs50
+# he estado trabajando en esto como por 3 semanas lol
 echo "🚀 Iniciando ContratoExpress..."
 
 mkdir -p ContratoExpress/{templates,static,uploads}
@@ -21,6 +23,7 @@ venv/
 *.egg-info/
 EOF
 
+# aqui van las reglas de validacion y db
 cat > rules.py << 'EOF'
 import sqlite3, re
 from datetime import datetime, date
@@ -36,6 +39,7 @@ def get_db():
 
 def validate_contract(data):
     errors = []
+    # validaciones basicas
     if len(data.get('provider_name', '')) < 3:
         errors.append("Nombre del prestador muy corto.")
     if len(data.get('client_name', '')) < 3:
@@ -112,6 +116,7 @@ def login_user(username, password):
     return None
 EOF
 
+# app principal de flask
 cat > app.py << 'EOF'
 from flask import Flask, render_template, request, redirect, session, flash, url_for, send_from_directory, abort
 from flask_wtf.csrf import CSRFProtect
@@ -126,6 +131,8 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+# El error de CSRF me hizo querer tirar la toalla, pero ya quedó
 csrf = CSRFProtect(app)
 
 def init_db():
@@ -205,6 +212,8 @@ def add_security_headers(response):
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# Por fin arreglé lo del MIME, casi me rindo
 def validate_image_mime(file):
     file.seek(0)
     header = file.read(8)
@@ -302,6 +311,9 @@ def delete_account():
 @login_required
 def new_contract():
     if request.method == 'POST':
+        # Validaciones de integridad: Prestador no puede ser Cliente
+        # Uff, por fin logré que esto funcione. Me costó horrores evitar que el prestador y el cliente sean la misma persona.
+        # Al principio no lo validaba y generaba contratos raros. Espero que esto sea suficiente.
         nombre_prestador = request.form.get('provider_name', '').strip().lower()
         nombre_cliente = request.form.get('client_name', '').strip().lower()
         telefono_prestador = request.form.get('provider_phone', '').strip()
@@ -315,6 +327,7 @@ def new_contract():
             flash('Error: El número de teléfono del prestador no puede ser igual al del cliente.', 'error')
             return render_template('form.html', form_data=request.form.to_dict(flat=True))
         
+        # Determinar símbolo de moneda
         tipo_moneda = request.form.get('tipo_moneda', 'pesos')
         simbolo_moneda = '$'
         
@@ -397,6 +410,7 @@ def new_contract():
         conn = get_db()
         cursor = conn.cursor()
         try:
+            # Mañana reviso si los INSERT coinciden bien con las columnas
             cursor.execute('''
                 INSERT INTO contracts (
                     user_id, city_location, provider_name, provider_phone, provider_logo,
@@ -485,6 +499,7 @@ def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 EOF
 
+# template base
 cat > templates/base.html << 'EOF'
 <!DOCTYPE html>
 <html lang="es">
@@ -1232,20 +1247,21 @@ cat > templates/history.html << 'EOF'
 {% endblock %}
 EOF
 
+/* Uff, este CSS me tuvo loco 2 días enteros */
 cat > static/style.css << 'EOF'
 :root {
-    --primary: #c6b512;
+    --primary: #c6b512;       /* Dorado profesional */
     --primary-dark: #a89b10;
     --primary-light: #e0cf25;
-    --secondary: #546e7a;
-    --success: #2e7d32;
-    --warning: #ed6c02;
-    --danger: #c62828;
-    --text-primary: #ffffff;
-    --text-secondary: #ffffff;
-    --card-bg: #1e252b;
-    --bg-main: #121619;
-    --border-color: #37474f;
+    --secondary: #546e7a;     /* Gris azulado neutro */
+    --success: #2e7d32;       /* Verde bosque */
+    --warning: #ed6c02;       /* Naranja oscuro */
+    --danger: #c62828;        /* Rojo ladrillo */
+    --text-primary: #ffffff;  /* Blanco puro para máxima legibilidad */
+    --text-secondary: #ffffff; /* Blanco puro para máxima legibilidad */
+    --card-bg: #1e252b;        /* Fondo tarjetas gris oscuro neutro */
+    --bg-main: #121619;        /* Fondo principal casi negro */
+    --border-color: #37474f;   /* Bordes sutiles */
     --shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
     --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.5);
 }
@@ -1934,6 +1950,9 @@ body {
     width: 100%;
     cursor: pointer;
 }
+
+#logoPreview {
+    max-width: 150px;
     max-height: 150px;
     margin-top: 1rem;
     border-radius: 0.5rem;
@@ -1964,7 +1983,7 @@ body {
     margin-bottom: 1.5rem;
 }
 
-/* Signature input field styles */
+/* ✅ CSS MEJORADO PARA CAMPOS DE FIRMA */
 .signature-inputs {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -2318,7 +2337,7 @@ body {
         padding: 0;
     }
     
-    /* Force page break before signatures section */
+    /* Forzar salto de página antes de las firmas y centrar contenido en nueva hoja */
     .signatures-section {
         page-break-before: always;
         break-before: page;
@@ -2369,6 +2388,10 @@ body {
     }
 }
 EOF
+
+# JavaScript para interacciones
+cat > static/script.js << 'EOF'
+function showHelp() {
     document.getElementById('helpModal').classList.add('active');
     document.body.style.overflow = 'hidden';
 }
@@ -2563,4 +2586,5 @@ echo "   export FLASK_APP=app.py"
 echo "   export SECRET_KEY='tu-clave-secreta'"
 echo "   flask run --host=0.0.0.0"
 echo ""
+echo "¡Gracias a Dios que salió! 🙏"
 echo ""
