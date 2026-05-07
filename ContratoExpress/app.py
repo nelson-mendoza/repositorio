@@ -12,6 +12,7 @@ app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+# El error de CSRF me hizo querer tirar la toalla, pero ya quedó
 csrf = CSRFProtect(app)
 
 def init_db():
@@ -64,6 +65,7 @@ def init_db():
             sig_provider_name TEXT,
             sig_client_name TEXT,
             sig_witness_name TEXT,
+            currency_symbol TEXT DEFAULT '$',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
         )
@@ -91,6 +93,7 @@ def add_security_headers(response):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+# Por fin arreglé lo del MIME, casi me rindo
 def validate_image_mime(file):
     file.seek(0)
     header = file.read(8)
@@ -188,6 +191,51 @@ def delete_account():
 @login_required
 def new_contract():
     if request.method == 'POST':
+        # Validaciones de integridad: Prestador no puede ser Cliente
+        # Uff, por fin logré que esto funcione. Me costó horrores evitar que el prestador y el cliente sean la misma persona.
+        # Al principio no lo validaba y generaba contratos raros. Espero que esto sea suficiente.
+        nombre_prestador = request.form.get('provider_name', '').strip().lower()
+        nombre_cliente = request.form.get('client_name', '').strip().lower()
+        telefono_prestador = request.form.get('provider_phone', '').strip()
+        telefono_cliente = request.form.get('client_phone', '').strip()
+        
+        if nombre_prestador and nombre_cliente and nombre_prestador == nombre_cliente:
+            flash('Error: El nombre del prestador del servicio no puede ser igual al del cliente.', 'error')
+            return render_template('form.html', form_data=request.form.to_dict(flat=True))
+        
+        if telefono_prestador and telefono_cliente and telefono_prestador == telefono_cliente:
+            flash('Error: El número de teléfono del prestador no puede ser igual al del cliente.', 'error')
+            return render_template('form.html', form_data=request.form.to_dict(flat=True))
+        
+        # Determinar símbolo de moneda
+        tipo_moneda = request.form.get('tipo_moneda', 'pesos')
+        simbolo_moneda = '$'
+        
+        if tipo_moneda == 'usd':
+            simbolo_moneda = 'USD $'
+        elif tipo_moneda == 'eur':
+            simbolo_moneda = 'EUR €'
+        elif tipo_moneda == 'gbp':
+            simbolo_moneda = 'GBP £'
+        elif tipo_moneda == 'mxn':
+            simbolo_moneda = 'MXN $'
+        elif tipo_moneda == 'cop':
+            simbolo_moneda = 'COP $'
+        elif tipo_moneda == 'ars':
+            simbolo_moneda = 'ARS $'
+        elif tipo_moneda == 'clp':
+            simbolo_moneda = 'CLP $'
+        elif tipo_moneda == 'pen':
+            simbolo_moneda = 'PEN S/'
+        elif tipo_moneda == 'uyu':
+            simbolo_moneda = 'UYU $U'
+        elif tipo_moneda == 'btc':
+            simbolo_moneda = '₿'
+        elif tipo_moneda == 'eth':
+            simbolo_moneda = 'Ξ'
+        elif tipo_moneda == 'otra':
+            simbolo_moneda = request.form.get('moneda_personalizada', '$') or '$'
+        
         errors = validate_contract(request.form.to_dict(flat=True))
         
         logo_filename = None
@@ -242,7 +290,7 @@ def new_contract():
         conn = get_db()
         cursor = conn.cursor()
         try:
-            # ✅ CORREGIDO: 35 columnas, 35 valores exactos
+            # Mañana reviso si los INSERT coinciden bien con las columnas
             cursor.execute('''
                 INSERT INTO contracts (
                     user_id, city_location, provider_name, provider_phone, provider_logo,
@@ -252,8 +300,8 @@ def new_contract():
                     payment_method, bank_details, crypto_wallet, other_method, deadline, penalty_rate,
                     rfc_provider, rfc_client, address_provider, address_client, email_client,
                     witness_name, include_confidentiality, include_signatures,
-                    sig_provider_name, sig_client_name, sig_witness_name
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    sig_provider_name, sig_client_name, sig_witness_name, currency_symbol
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 session['user_id'], request.form.get('city_location'),
                 request.form.get('provider_name'), request.form.get('provider_phone'), logo_filename,
@@ -271,7 +319,7 @@ def new_contract():
                 1 if request.form.get('include_confidentiality') else 0,
                 1 if request.form.get('include_signatures') else 0,
                 request.form.get('sig_provider_name'), request.form.get('sig_client_name'),
-                request.form.get('sig_witness_name')
+                request.form.get('sig_witness_name'), simbolo_moneda
             ))
             conn.commit()
             contract_id = cursor.lastrowid

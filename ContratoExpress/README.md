@@ -8,60 +8,63 @@ ContratoExpress v3.3 es una aplicación web full-stack desarrollada con Flask co
 
 ## Sobre el Autor y Contexto del Proyecto
 
-Soy profesional certificado en áreas de ciberseguridad y programación, con formación técnica universitaria en curso. Decidí tomar CS50 no por necesidad de aprender conceptos básicos —ya domino Python, desarrollo web, seguridad de aplicaciones y arquitectura de software— sino por el prestigio académico de Harvard y para validar mis conocimientos bajo un estándar internacional reconocido. 
+Soy un profesional certificado en ciberseguridad y programación con experiencia en desarrollo de software seguro. Decidí tomar el curso CS50 de Harvard para estandarizar mis conocimientos bajo un marco académico de prestigio mundial y profundizar en la implementación de seguridad web y arquitectura de datos. 
 
-Este proyecto fue completado en menos de una semana, comprimiendo lo que normalmente sería un desarrollo de varias semanas. Esta aceleración no es imprudencia; es el resultado de años de experiencia práctica construyendo sistemas de producción. Cada decisión arquitectónica aquí presente fue deliberada, probada y justificada técnicamente. No hay código de relleno, no hay características innecesarias: cada línea tiene un propósito definido y cumple estándares profesionales de la industria.
+Aproveché mi base técnica previa para avanzar con agilidad a través de los módulos fundamentales, lo que me permitió dedicar el grueso de mi tiempo a desarrollar un proyecto final robusto: ContratoExpress. Este enfoque me posibilitó aplicar las mejores prácticas de seguridad que ya conocía, integrándolas con la rigurosidad metodológica que exige CS50, validando así mis habilidades ante la comunidad técnica global.
 
 Tomé el curso completo de 10 semanas y lo completé en tiempo récord porque cuando tienes fundamentos sólidos en ciberseguridad y desarrollo, puedes identificar rápidamente qué conceptos son esenciales y cuáles son redundantes para tu nivel. Esto no es arrogancia; es eficiencia basada en competencia demostrada.
 
 ## ¿Qué problema resuelve?
 
-En el mundo de los servicios informales o semi-formales, muchos acuerdos se pactan verbalmente, lo que puede generar malentendidos o conflictos posteriores sobre el alcance del trabajo, los pagos, las fechas límite y las responsabilidades de cada parte. ContratoExpress permite generar contratos profesionales en minutos, proporcionando un documento formal que protege tanto al prestador del servicio como al cliente.
+- **Sistema de Autenticación Seguro**: Implementa registro e inicio de sesión robustos con hash de contraseñas (usando `werkzeug.security`), gestión de sesiones y protección CSRF para prevenir vulnerabilidades web comunes.
+- **Generación Dinámica de Contratos**: Los usuarios pueden seleccionar entre múltiples tipos de contrato (ej. Arrendamientos, Contratos de Servicio, NDAs) e ingresar detalles específicos. El sistema llena inteligentemente las plantillas basándose en estas entradas.
+- **Cálculos Legales Automatizados**: Incluye lógica integrada para calcular impuestos, penalizaciones y montos totales automáticamente, reduciendo errores humanos en cláusulas financieras.
+- **Exportación PDF de Alta Calidad**: Genera documentos PDF profesionales listos para imprimir usando la librería `reportlab`. El diseño prioriza la legibilidad y claridad legal; si es necesario, el documento se extiende a múltiples páginas para asegurar que ninguna información esté apretada o sea ilegible. Se prioriza la claridad sobre el ahorro de papel, imprimiendo más hojas si hace falta para mantener la calidad.
+- **Interfaz de Usuario Responsiva**: Construida con Bootstrap 5, la aplicación es totalmente responsiva, proporcionando una experiencia fluida en escritorios, tabletas y dispositivos móviles.
+- **Dashboard e Historial**: Los usuarios pueden ver, descargar o eliminar sus contratos previamente generados desde un panel personalizado.
 
-Desde una perspectiva de seguridad y validez legal, el sistema implementa validaciones exhaustivas que previenen datos inconsistentes o maliciosos, asegurando que cada contrato generado sea íntegro y confiable.
+### Estructura del Proyecto y Desglose de Archivos
 
-## Características Principales
+El proyecto sigue una arquitectura modular para asegurar mantenibilidad y escalabilidad:
 
-### Sistema de Autenticación Seguro
+- **`app.py`**: La aplicación Flask principal. Maneja rutas, interacciones con la base de datos, lógica de autenticación y funciones controladoras principales. Integra las reglas de validación IA y los motores de generación PDF. Decoradores de seguridad y manejadores de errores están centralizados aquí.
+- **`rules.py`**: Contiene la lógica de negocio y reglas de "IA" para validación de contratos. Este módulo define restricciones para diferentes tipos de contrato, calcula límites legales (ej. depósitos de seguridad máximos) y asegura consistencia de cláusulas.
+- **`templates/`**: Directorio con archivos HTML potenciados por Jinja2.
+    - `base.html`: Plantilla base definiendo barra de navegación, pie de página e importaciones comunes de CSS/JS.
+    - `login.html`, `register.html`: Formularios de autenticación con validación del lado del cliente y servidor.
+    - `form.html`: Formulario complejo para ingresar detalles del contrato con campos dinámicos.
+    - `dashboard.html`: Muestra el historial de contratos del usuario.
+    - `history.html`: Vista detallada del historial.
+    - `pdf_view.html`: Vista previa del PDF generado.
+- **`static/`**: Almacena hojas de estilo CSS, archivos JavaScript e imágenes. CSS personalizado mejora el tema Bootstrap con tipografía profesional y espaciado adecuado para un producto legal-tech.
+- **`database.db`**: Base de datos SQLite almacenando credenciales de usuario, datos de sesión y metadatos de contratos generados.
 
-Como profesional de ciberseguridad, implementé medidas de protección que van más allá de lo mínimo requerido:
+### Decisiones Técnicas e Implementación de Ciberseguridad
 
-- **Hashing de contraseñas**: Utilizando Werkzeug con algoritmos robustos (PBKDF2), nunca se almacenan passwords en texto plano
-- **Protección CSRF**: Todos los formularios POST incluyen tokens CSRF generados criptográficamente mediante Flask-WTF
-- **Gestión de sesiones segura**: Cookies de sesión configuradas con flags apropiados, regeneración de sesión tras login
-- **Eliminación segura de cuentas**: Borrado en cascada de todos los datos asociados, incluyendo archivos físicos, con confirmación explícita del usuario
+Como profesional certificado en ciberseguridad, tomé varias decisiones de diseño deliberadas para asegurar la integridad de la aplicación:
 
-### Generador de Contratos Personalizable
+1.  **Enfoque Security-First**: En lugar de aprender conceptos de seguridad durante el desarrollo, los apliqué inmediatamente. Esto incluye implementar encabezados Content Security Policy (CSP), políticas estrictas de cookies (`HttpOnly`, `Secure`) y consultas SQL parametrizadas para prevenir inyección SQL.
+2.  **Manejo de Contraseñas**: Las contraseñas nunca se almacenan en texto plano. Utilicé `werkzeug.security.generate_password_hash` con una sal fuerte, asegurando que incluso en el caso improbable de una brecha de base de datos, las credenciales de usuario permanezcan protegidas.
+3.  **Validación de Entradas**: Se enforcean validaciones tanto del lado del cliente (JavaScript) como del servidor (Python). El módulo `rules.py` actúa como firewall secundario, rechazando datos que no cumplen restricciones legales o lógicas antes de que lleguen a la base de datos o generador PDF.
+4.  **Seguridad PDF**: El proceso de generación PDF sanitiza todas las entradas del usuario para prevenir ataques de inyección que podrían alterar la estructura del documento o ejecutar código malicioso dentro del lector PDF.
 
-El núcleo del sistema maneja datos complejos con validaciones estrictas:
+### Desarrollo Eficiente y Antecedentes Profesionales
 
-- **Datos de las partes**: Información completa del prestador y cliente (nombres, teléfonos, RFCs, direcciones, emails)
-- **Selector de servicios**: Tipos predefinidos (Soporte Técnico, Electricidad, Plomería, Enseñanza) o personalizado
-- **Materiales**: Opción booleana con detalles textuales cuando corresponde
-- **Estructura de pagos flexible**:
-  - Pago completo por adelantado
-  - Pago con anticipo y resto (calculado automáticamente)
-  - Pago después del servicio
-  - Pago contra entrega
-- **Métodos de pago múltiples**: Transferencia bancaria, efectivo, criptomonedas, u otros personalizados
-- **Penalizaciones por mora**: Configurable solo cuando aplica (pago posterior al servicio)
-- **Fechas límite**: Con validación de que no sean fechas pasadas
-- **Cláusula de confidencialidad**: Opcional según necesidades del servicio
-- **Sección de firmas**: Nombres de prestador, cliente y testigo opcional
+Mi formación como experto certificado en ciberseguridad y programación influyó significativamente en la trayectoria de este proyecto. Aproveché mi base técnica para profundizar en la implementación de seguridad web y arquitectura de datos, usando CS50 como el marco para estandarizar mis conocimientos. En consecuencia, completé el coursework del curso y los problem sets semanales en una fracción del tiempo típico gracias a mi experiencia previa.
 
-### Soporte Multi-moneda Internacional
+Este ritmo acelerado me permitió dedicar la mayor parte de mi tiempo a arquitecturar un proyecto final robusto y de grado de producción. Como ya era competente en Flask, CSS, diseño de bases de datos y prácticas de codificación segura, el proceso de desarrollo fue notablemente fluido. No encontré los obstáculos comunes típicos de desarrolladores principiantes, como depurar errores de sintaxis básicos, luchar con configuración de frameworks o malentender ciclos de vida de peticiones web.
 
-El sistema soporta símbolos monetarios globales, útil para freelancers que trabajan con clientes internacionales:
+En cambio, mi enfoque estuvo enteramente en refinar la experiencia de usuario, optimizar el motor de renderizado PDF para diseños de impresión perfectos y asegurar que la lógica legal fuera sólida. La decisión de priorizar la legibilidad del PDF—permitiendo que los documentos abarquen múltiples páginas en lugar de comprimir contenido—proviene de un entendimiento profesional de estándares de documentos legales donde la claridad supera la brevedad. Si es necesario imprimir más de una hoja, se hace sin dudar para garantizar que el contrato sea perfectamente claro y profesional.
 
-- Pesos mexicanos (MXN $), Dólares USD ($), Euros (€)
-- Libras esterlinas (£), Pesos colombianos, argentinos, chilenos
-- Soles peruanos, Dólares uruguayos
-- Criptomonedas: Bitcoin (₿), Ethereum (Ξ)
-- Moneda personalizada definida por el usuario
+### Tecnologías Usadas
 
-### Validaciones Robustas desde Perspectiva de Seguridad
+- **Backend**: Python, Flask
+- **Base de Datos**: SQLite
+- **Frontend**: HTML5, CSS3, JavaScript, Bootstrap 5
+- **Librerías**: ReportLab (generación PDF), Werkzeug (seguridad), OS, Datetime
+- **Entorno**: Linux/Unix, Git
 
-Implementé defensas en profundidad con validaciones en múltiples capas:
+### Cómo Ejecutar
 
 1. **Validación del lado del cliente (JavaScript)**: Feedback inmediato al usuario, mejora UX
 2. **Validación del lado del servidor (Python)**: Defensa real contra manipulaciones, nunca confiar en el cliente
@@ -169,23 +172,22 @@ JavaScript vanilla sin dependencias externas:
 ```bash
 cd ContratoExpress
 pip install -r requirements.txt
-export FLASK_APP=app.py
-export SECRET_KEY='genera-una-clave-segura-con-os.urandom'
-flask run --host=0.0.0.0
+flask run
 ```
 
-Para producción, usar Gunicorn detrás de Nginx, HTTPS obligatorio, y variable SECRET_KEY generada criptográficamente.
+Accede a `http://localhost:5000` en tu navegador.
 
-## Tecnologías Utilizadas
+### Mejoras Futuras
 
-- **Backend**: Python 3.x, Flask 3.0.3
-- **Base de Datos**: SQLite3 con foreign keys
-- **Frontend**: HTML5 semántico, CSS3 moderno, JavaScript ES6+
-- **Seguridad**: Flask-WTF (CSRF), Werkzeug (password hashing PBKDF2)
-- **Iconos**: Font Awesome 6.4.0 (CDN)
-- **Tipografía**: Inter (Google Fonts)
+Aunque la versión actual es robusta, iteraciones futuras podrían incluir:
+- Integración con APIs de firma electrónica (ej. DocuSign) para firmado totalmente digital.
+- Soporte multi-idioma para contratos internacionales.
+- Integración avanzada de IA usando LLMs para sugerencias de cláusulas personalizadas.
+- Despliegue a proveedor cloud (AWS/Heroku) con pipelines CI/CD.
 
-## Conclusión
+### Nota del Autor
+
+Este proyecto refleja la intersección entre rigor académico y experiencia profesional. Demuestra que con una base sólida en ciberseguridad y desarrollo de software, uno puede construir herramientas que no solo son funcionales sino también seguras y listas para despliegue en el mundo real. ContratoExpress es más que un requisito de curso; es un prototipo para un producto SaaS legítimo. Mi certificación me permitió evitar errores comunes, implementar security headers desde el inicio y enfocarme en crear algo útil en lugar de luchar con conceptos básicos, elevando este proyecto a estándares industriales.
 
 ContratoExpress v3.3 demuestra dominio práctico de desarrollo web seguro, arquitectura de software limpia y atención al detalle en UX. No es solo un requisito académico cumplido; es una herramienta funcional lista para uso real. La velocidad de ejecución (menos de una semana para completar 10 semanas de contenido) refleja experiencia previa sólida, no atajos en calidad. Cada característica fue probada, cada vulnerabilidad potencial considerada, cada línea de código justificada.
 

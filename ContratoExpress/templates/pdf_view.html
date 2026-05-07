@@ -67,9 +67,10 @@
     </div>
     <div class="pdf-section">
         <h3>TERCERA. HONORARIOS Y FORMA DE PAGO</h3>
-        <p>El costo total del servicio es de <strong class="highlight">${{ "%.2f"|format(contract.total_amount) }}</strong> ({{ contract.total_amount|int }} pesos {{ "%.0f"|format((contract.total_amount % 1) * 100) }}/100 M.N.).</p>
+        {% set currency = contract.currency_symbol if contract.currency_symbol else '$' %}
+        <p>El costo total del servicio es de <strong class="highlight">{{ currency }}{{ "%.2f"|format(contract.total_amount) }}</strong> ({{ contract.total_amount|int }} {{ "pesos" if contract.currency_symbol in ['$','MXN $','COP $','ARS $','CLP $','UYU $U'] else "unidades" }} {{ "%.0f"|format((contract.total_amount % 1) * 100) }}/100 M.N.).</p>
         {% if contract.payment_structure == 'advance' %}
-            <p><strong>Forma de pago:</strong> Se establece un anticipo de ${{ "%.2f"|format(contract.advance_amount) }} al firmar el presente contrato, y el resto (${{ "%.2f"|format(contract.remaining_amount) }}) al finalizar el servicio.</p>
+            <p><strong>Forma de pago:</strong> Se establece un anticipo de {{ currency }}{{ "%.2f"|format(contract.advance_amount) }} al firmar el presente contrato, y el resto ({{ currency }}{{ "%.2f"|format(contract.remaining_amount) }}) al finalizar el servicio.</p>
         {% elif contract.payment_structure == 'partial' %}
             <p><strong>Forma de pago:</strong> Pagos parciales según avance del servicio.</p>
         {% else %}

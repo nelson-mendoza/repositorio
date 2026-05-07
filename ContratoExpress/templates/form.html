@@ -3,7 +3,7 @@
 {% block content %}
 <div class="form-container">
     <div class="form-header">
-        <h1><i class="fas fa-file-signature"></i> Generador de Contratos</h1>
+        <h1><i class="fas fa-file-signature"></i> Generador de Contratos para Servicios Simples</h1>
         <p>Completa los datos para generar tu contrato profesional</p>
     </div>
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -115,15 +115,37 @@
             </div>
             <div class="form-row grid-3">
                 <div class="form-group">
-                    <label for="totalAmount">Monto Total ($)</label>
+                    <label for="currencyType">Moneda</label>
+                    <select id="currencyType" name="tipo_moneda" onchange="toggleCustomCurrency()">
+                        <option value="pesos" {{ 'selected' if form_data and form_data.get('tipo_moneda') == 'pesos' else '' }}>Pesos ($)</option>
+                        <option value="usd" {{ 'selected' if form_data and form_data.get('tipo_moneda') == 'usd' else '' }}>Dólares (USD $)</option>
+                        <option value="eur" {{ 'selected' if form_data and form_data.get('tipo_moneda') == 'eur' else '' }}>Euros (EUR €)</option>
+                        <option value="gbp" {{ 'selected' if form_data and form_data.get('tipo_moneda') == 'gbp' else '' }}>Libras (GBP £)</option>
+                        <option value="mxn" {{ 'selected' if form_data and form_data.get('tipo_moneda') == 'mxn' else '' }}>MXN ($)</option>
+                        <option value="cop" {{ 'selected' if form_data and form_data.get('tipo_moneda') == 'cop' else '' }}>COP ($)</option>
+                        <option value="ars" {{ 'selected' if form_data and form_data.get('tipo_moneda') == 'ars' else '' }}>ARS ($)</option>
+                        <option value="clp" {{ 'selected' if form_data and form_data.get('tipo_moneda') == 'clp' else '' }}>CLP ($)</option>
+                        <option value="pen" {{ 'selected' if form_data and form_data.get('tipo_moneda') == 'pen' else '' }}>PEN (S/)</option>
+                        <option value="uyu" {{ 'selected' if form_data and form_data.get('tipo_moneda') == 'uyu' else '' }}>UYU ($U)</option>
+                        <option value="btc" {{ 'selected' if form_data and form_data.get('tipo_moneda') == 'btc' else '' }}>Bitcoin (₿)</option>
+                        <option value="eth" {{ 'selected' if form_data and form_data.get('tipo_moneda') == 'eth' else '' }}>Ethereum (Ξ)</option>
+                        <option value="otra" {{ 'selected' if form_data and form_data.get('tipo_moneda') == 'otra' else '' }}>Otra...</option>
+                    </select>
+                </div>
+                <div class="form-group" id="customCurrencyDiv" style="display: {{ 'none' if not form_data or form_data.get('tipo_moneda') != 'otra' else 'block' }}">
+                    <label for="customCurrency">Símbolo personalizado</label>
+                    <input type="text" id="customCurrency" name="moneda_personalizada" value="{{ form_data.get('moneda_personalizada', '') if form_data else '' }}" placeholder="Ej: ¥, ₺, ₽...">
+                </div>
+                <div class="form-group">
+                    <label for="totalAmount">Monto Total</label>
                     <input type="number" id="totalAmount" name="total_amount" step="0.01" value="{{ form_data.get('total_amount', '') if form_data else '' }}" oninput="calcRemaining()" required>
                 </div>
                 <div class="form-group" id="advanceDiv" style="display: {{ 'none' if not form_data or form_data.get('payment_structure') == 'single' else 'block' }}">
-                    <label for="advanceAmount">Anticipo ($)</label>
+                    <label for="advanceAmount">Anticipo</label>
                     <input type="number" id="advanceAmount" name="advance_amount" step="0.01" value="{{ form_data.get('advance_amount', '') if form_data else '' }}" oninput="calcRemaining()">
                 </div>
                 <div class="form-group" id="remainingDiv" style="display: {{ 'none' if not form_data or form_data.get('payment_structure') == 'single' else 'block' }}">
-                    <label for="remainingAmount">Resto ($)</label>
+                    <label for="remainingAmount">Resto</label>
                     <input type="number" id="remainingAmount" name="remaining_amount" step="0.01" readonly>
                 </div>
             </div>

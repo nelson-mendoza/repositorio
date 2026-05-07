@@ -113,6 +113,12 @@ function toggleSignatureNames() {
     namesDiv.style.display = checkbox.checked ? 'grid' : 'none';
 }
 
+function toggleCustomCurrency() {
+    const currencyType = document.getElementById('currencyType').value;
+    const customDiv = document.getElementById('customCurrencyDiv');
+    customDiv.style.display = currencyType === 'otra' ? 'block' : 'none';
+}
+
 function previewLogo(input) {
     const preview = document.getElementById('logoPreview');
     if (input.files && input.files[0]) {

@@ -34,7 +34,8 @@
                     <p class="client-name"><i class="fas fa-user"></i> {{ c.client_name }}</p>
                     <div class="contract-meta">
                         <span><i class="fas fa-calendar"></i> {{ (c.created_at|string)[:10] }}</span>
-                        <span><i class="fas fa-dollar-sign"></i> ${{ "%.2f"|format(c.total_amount) }}</span>
+                        {% set cur = c.currency_symbol if c.currency_symbol else '$' %}
+                        <span><i class="fas fa-coins"></i> {{ cur }}{{ "%.2f"|format(c.total_amount) }}</span>
                     </div>
                 </div>
                 <div class="contract-actions">
