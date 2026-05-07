@@ -117,6 +117,44 @@ def login_user(username, password):
 EOF
 
 # app principal de flask
+# Open DB connection
+# Keeping validations together made debugging easier
+# Keep form checks here
+# Clean phone input first
+# Forms send numbers as text
+# Deadline can't be older than today
+# Signature names are required only when the signature block is enabled.
+# Hash passwords before saving
+# Quick auth check
+# Dev fallback key
+# Store uploads here
+# Prevent huge uploads
+# Create tables if DB is empty
+# Main contracts table
+# Redirect if user not logged in
+# Basic security headers
+# I only wanted image uploads here
+# Check extension first
+# Check image header bytes
+# Logged users go to dashboard
+# Signup route
+# Reset old session data
+# Delete user data + uploaded logos
+# This route gathers form data, validates it, and writes the final contract to SQLite.
+# Avoid contracts where provider and client are literally the same person
+# Currency symbol for PDF
+# Optional logo upload
+# File extension alone is not enough
+# Custom service name
+# HTML forms send strings
+# Calculate remaining payment automatically
+# Only apply discount if provided
+# Save to DB
+# Generate PDF
+# Return JSON with the filename
+# Login route
+# Simple password check (use hashing in production!)
+# Set session variable
 cat > app.py << 'EOF'
 from flask import Flask, render_template, request, redirect, session, flash, url_for, send_from_directory, abort
 from flask_wtf.csrf import CSRFProtect
