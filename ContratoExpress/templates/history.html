@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Historial - ContratoExpress{% endblock %}
+{% block content %}
+<div class="history-container">
+    <div class="page-header">
+        <h1><i class="fas fa-history"></i> Historial de Contratos</h1>
+        <p>Consulta y gestiona todos tus contratos generados</p>
+    </div>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="alerts-container">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        <i class="fas {% if category == 'error' %}fa-exclamation-circle{% elif category == 'success' %}fa-check-circle{% else %}fa-info-circle{% endif %}"></i>
+                        <span>{{ message }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+    {% if contracts %}
+        <div class="contracts-grid">
+            {% for c in contracts %}
+            <div class="contract-card">
+                <div class="contract-header">
+                    <div class="contract-type">
+                        <i class="fas fa-file-contract"></i>
+                        <span>{{ c.service_type }}</span>
+                    </div>
+                    <span class="contract-status">Activo</span>
+                </div>
+                <div class="contract-body">
+                    <h3>{{ c.service_title }}</h3>
+                    <p class="client-name"><i class="fas fa-user"></i> {{ c.client_name }}</p>
+                    <div class="contract-meta">
+                        <span><i class="fas fa-calendar"></i> {{ (c.created_at|string)[:10] }}</span>
+                        {% set cur = c.currency_symbol if c.currency_symbol else '$' %}
+                        <span><i class="fas fa-coins"></i> {{ cur }}{{ "%.2f"|format(c.total_amount) }}</span>
+                    </div>
+                </div>
+                <div class="contract-actions">
+                    <a href="{{ url_for('view_contract', contract_id=c.id) }}" class="btn-primary btn-sm">
+                        <i class="fas fa-eye"></i> Ver
+                    </a>
+                    <form action="{{ url_for('delete_contract', contract_id=c.id) }}" method="POST" style="display:inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn-danger btn-sm" onclick="return confirm('¿Eliminar este contrato?')">
+                            <i class="fas fa-trash"></i> Eliminar
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <i class="fas fa-folder-open"></i>
+            <h3>No hay contratos aún</h3>
+            <p>Cuando crees tu primer contrato, aparecerá aquí.</p>
+            <a href="{{ url_for('new_contract') }}" class="btn-primary">
+                <i class="fas fa-plus"></i> Crear Primer Contrato
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
