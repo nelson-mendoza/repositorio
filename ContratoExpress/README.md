@@ -19,7 +19,7 @@ Tomé el curso completo de 10 semanas y lo completé en tiempo récord porque cu
 - **Sistema de Autenticación Seguro**: Implementa registro e inicio de sesión robustos con hash de contraseñas (usando `werkzeug.security`), gestión de sesiones y protección CSRF para prevenir vulnerabilidades web comunes.
 - **Generación Dinámica de Contratos**: Los usuarios pueden seleccionar entre múltiples tipos de contrato (ej. Arrendamientos, Contratos de Servicio, NDAs) e ingresar detalles específicos. El sistema llena inteligentemente las plantillas basándose en estas entradas.
 - **Cálculos Legales Automatizados**: Incluye lógica integrada para calcular impuestos, penalizaciones y montos totales automáticamente, reduciendo errores humanos en cláusulas financieras.
-- **Exportación PDF de Alta Calidad**: Genera documentos PDF profesionales listos para imprimir usando la librería `reportlab`. El diseño prioriza la legibilidad y claridad legal; si es necesario, el documento se extiende a múltiples páginas para asegurar que ninguna información esté apretada o sea ilegible. Se prioriza la claridad sobre el ahorro de papel, imprimiendo más hojas si hace falta para mantener la calidad.
+- **Exportación PDF de Alta Calidad**: Genera documentos PDF profesionales listos para imprimir usando un motor de renderizado basado en CSS `@media print`. Esta decisión asegura ligereza y compatibilidad sin dependencias externas pesadas. El diseño prioriza la legibilidad y claridad legal; si es necesario, el documento se extiende a múltiples páginas para asegurar que ninguna información esté apretada o sea ilegible. Se prioriza la claridad sobre el ahorro de papel, imprimiendo más hojas si hace falta para mantener la calidad.
 - **Interfaz de Usuario Responsiva**: Construida con Bootstrap 5, la aplicación es totalmente responsiva, proporcionando una experiencia fluida en escritorios, tabletas y dispositivos móviles.
 - **Dashboard e Historial**: Los usuarios pueden ver, descargar o eliminar sus contratos previamente generados desde un panel personalizado.
 
@@ -27,8 +27,8 @@ Tomé el curso completo de 10 semanas y lo completé en tiempo récord porque cu
 
 El proyecto sigue una arquitectura modular para asegurar mantenibilidad y escalabilidad:
 
-- **`app.py`**: La aplicación Flask principal. Maneja rutas, interacciones con la base de datos, lógica de autenticación y funciones controladoras principales. Integra las reglas de validación IA y los motores de generación PDF. Decoradores de seguridad y manejadores de errores están centralizados aquí.
-- **`rules.py`**: Contiene la lógica de negocio y reglas de "IA" para validación de contratos. Este módulo define restricciones para diferentes tipos de contrato, calcula límites legales (ej. depósitos de seguridad máximos) y asegura consistencia de cláusulas.
+- **`app.py`**: La aplicación Flask principal. Maneja rutas, interacciones con la base de datos, lógica de autenticación y funciones controladoras principales. Integra las reglas de validación inteligente y los motores de generación PDF. Decoradores de seguridad y manejadores de errores están centralizados aquí.
+- **`rules.py`**: Contiene la lógica de negocio y reglas inteligentes para validación de contratos. Este módulo define restricciones para diferentes tipos de contrato, calcula límites legales (ej. depósitos de seguridad máximos) y asegura consistencia de cláusulas.
 - **`templates/`**: Directorio con archivos HTML potenciados por Jinja2.
     - `base.html`: Plantilla base definiendo barra de navegación, pie de página e importaciones comunes de CSS/JS.
     - `login.html`, `register.html`: Formularios de autenticación con validación del lado del cliente y servidor.
@@ -50,9 +50,9 @@ Como profesional certificado en ciberseguridad, tomé varias decisiones de dise�
 
 ### Desarrollo Eficiente y Antecedentes Profesionales
 
-Mi formación como experto certificado en ciberseguridad y programación influyó significativamente en la trayectoria de este proyecto. Aproveché mi base técnica para profundizar en la implementación de seguridad web y arquitectura de datos, usando CS50 como el marco para estandarizar mis conocimientos. En consecuencia, completé el coursework del curso y los problem sets semanales en una fracción del tiempo típico gracias a mi experiencia previa.
+Mi formación como experto certificado en ciberseguridad y programación influyó significativamente en la trayectoria de este proyecto. Aproveché mi base técnica para profundizar en temas avanzados de cada semana, dedicando el mayor esfuerzo a la arquitectura de este proyecto final. Usé CS50 como el marco para estandarizar mis conocimientos bajo un enfoque académico riguroso.
 
-Este ritmo acelerado me permitió dedicar la mayor parte de mi tiempo a arquitecturar un proyecto final robusto y de grado de producción. Como ya era competente en Flask, CSS, diseño de bases de datos y prácticas de codificación segura, el proceso de desarrollo fue notablemente fluido. No encontré los obstáculos comunes típicos de desarrolladores principiantes, como depurar errores de sintaxis básicos, luchar con configuración de frameworks o malentender ciclos de vida de peticiones web.
+Este enfoque me permitió dedicar la mayor parte de mi tiempo a arquitecturar un proyecto final robusto y de grado de producción. Como ya era competente en Flask, CSS, diseño de bases de datos y prácticas de codificación segura, el proceso de desarrollo fue notablemente fluido. No encontré los obstáculos comunes típicos de desarrolladores principiantes, como depurar errores de sintaxis básicos, luchar con configuración de frameworks o malentender ciclos de vida de peticiones web.
 
 En cambio, mi enfoque estuvo enteramente en refinar la experiencia de usuario, optimizar el motor de renderizado PDF para diseños de impresión perfectos y asegurar que la lógica legal fuera sólida. La decisión de priorizar la legibilidad del PDF—permitiendo que los documentos abarquen múltiples páginas en lugar de comprimir contenido—proviene de un entendimiento profesional de estándares de documentos legales donde la claridad supera la brevedad. Si es necesario imprimir más de una hoja, se hace sin dudar para garantizar que el contrato sea perfectamente claro y profesional.
 
@@ -61,7 +61,7 @@ En cambio, mi enfoque estuvo enteramente en refinar la experiencia de usuario, o
 - **Backend**: Python, Flask
 - **Base de Datos**: SQLite
 - **Frontend**: HTML5, CSS3, JavaScript, Bootstrap 5
-- **Librerías**: ReportLab (generación PDF), Werkzeug (seguridad), OS, Datetime
+- **Librerías**: Werkzeug (seguridad), OS, Datetime
 - **Entorno**: Linux/Unix, Git
 
 ### Cómo Ejecutar
