@@ -1178,20 +1178,20 @@ EOF
 /* CSS con variables y todo eso */
 cat > static/style.css << 'EOF'
 :root {
-    --primary: #2563eb;       /* Azul formal */
-    --primary-dark: #1d4ed8;
-    --primary-light: #60a5fa;
-    --secondary: #475569;     /* Gris para contrastes */
-    --success: #10b981;
-    --warning: #f59e0b;
-    --danger: #ef4444;
-    --text-primary: #f1f5f9;  /* Texto principal claro */
-    --text-secondary: #94a3b8; /* Texto secundario gris */
-    --card-bg: #1e293b;        /* Fondo de tarjetas */
-    --bg-main: #0f172a;        /* Fondo principal */
-    --border-color: #334155;   /* Bordes */
-    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
-    --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+    --primary: #0f4c81;       /* Azul clásico sobrio */
+    --primary-dark: #093256;
+    --primary-light: #1a6ab3;
+    --secondary: #546e7a;     /* Gris azulado neutro */
+    --success: #2e7d32;       /* Verde bosque */
+    --warning: #ed6c02;       /* Naranja oscuro */
+    --danger: #c62828;        /* Rojo ladrillo */
+    --text-primary: #e0e6ed;  /* Texto claro suave */
+    --text-secondary: #b0bec5; /* Texto secundario gris */
+    --card-bg: #1e252b;        /* Fondo tarjetas gris oscuro neutro */
+    --bg-main: #121619;        /* Fondo principal casi negro */
+    --border-color: #37474f;   /* Bordes sutiles */
+    --shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.5);
 }
 
 * {
@@ -1205,6 +1205,7 @@ body {
     background: var(--bg-main);
     min-height: 100vh;
     color: var(--text-primary);
+    line-height: 1.6;
 }
 
 .navbar {
@@ -1700,7 +1701,7 @@ body {
 
 .stat-icon.blue { background: var(--primary); }
 .stat-icon.green { background: var(--success); }
-.stat-icon.purple { background: #8b5cf6; }
+.stat-icon.purple { background: var(--secondary); }
 
 .stat-info h3, .stat-info h4 {
     color: var(--text-primary);
@@ -2249,16 +2250,60 @@ body {
     
     body {
         background: #ffffff;
+        color: #000000;
     }
     
     .pdf-document {
         box-shadow: none;
-        padding: 0;
+        padding: 2rem;
         max-width: 100%;
+        background: #ffffff;
     }
     
     .main-content {
         padding: 0;
+    }
+    
+    .pdf-header {
+        border-bottom-color: #000000;
+    }
+    
+    .pdf-section h3 {
+        color: #000000;
+        border-bottom-color: #cccccc;
+    }
+    
+    .pdf-section p {
+        color: #000000;
+    }
+    
+    .header-center h1 {
+        color: #000000;
+    }
+    
+    .contract-number, .contract-date {
+        color: #333333;
+    }
+    
+    .small-text {
+        color: #555555;
+    }
+    
+    .highlight {
+        color: #000000;
+        font-weight: 700;
+    }
+    
+    .sig-line {
+        border-top-color: #000000;
+    }
+    
+    .pdf-footer {
+        color: #666666;
+    }
+    
+    .client-name, .contract-meta span {
+        color: #333333;
     }
 }
 EOF
