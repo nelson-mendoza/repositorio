@@ -23,30 +23,26 @@ venv/
 *.egg-info/
 EOF
 
-# aqui van las reglas de validacion y db
-# Open DB connection
-# Keeping validations together made debugging easier
-# Keep form checks here
-# Clean phone input first
-# Check for obvious duplicates
-# Logical date check
-# Amount arithmetic check
-# DB logic to keep app.py clean
 cat > rules.py << 'EOF'
 import sqlite3, re
 from datetime import datetime, date
 from werkzeug.security import generate_password_hash, check_password_hash
 
+# aqui van las reglas de validacion y db
+
 DATABASE = 'contracts.db'
 
 def get_db():
+    # Open DB connection (Comentario sobre la apertura de conexión).
     conn = sqlite3.connect(DATABASE)
     conn.execute("PRAGMA foreign_keys = ON")
     conn.row_factory = sqlite3.Row
     return conn
 
+# Keeping validations together made debugging easier
 def validate_contract(data):
     errors = []
+    # Keep form checks here
     # validaciones basicas
     if len(data.get('provider_name', '')) < 3:
         errors.append("Nombre del prestador muy corto.")
@@ -100,6 +96,7 @@ def validate_contract(data):
             errors.append("Falta el nombre para la firma del cliente.")
     return errors
 
+# DB logic to keep app.py clean
 def register_user(username, password):
     conn = get_db()
     cursor = conn.cursor()
@@ -2407,10 +2404,10 @@ body {
 EOF
 
 # JavaScript para interacciones
-# Real-time math for the user
-# Dynamic UI toggles
-# Validation before submit to save server resources
 cat > static/script.js << 'EOF'
+// Real-time math for the user
+// Dynamic UI toggles
+// Validation before submit to save server resources
 function showHelp() {
     document.getElementById('helpModal').classList.add('active');
     document.body.style.overflow = 'hidden';
