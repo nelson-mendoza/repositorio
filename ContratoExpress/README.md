@@ -1,10 +1,10 @@
-# ContratoExpress - Generador de Contratos para Servicios Simples
+# ContratoExpress v3.3 - Generador Profesional de Contratos para Servicios Simples
 
 #### Video Demo: <URL HERE>
 
 #### Description:
 
-**ContratoExpress** es una aplicación web desarrollada con Flask que permite a técnicos, electricistas, plomeros, tutores y freelancers generar contratos profesionales para servicios simples de manera rápida y sencilla. Esta herramienta nació como mi proyecto final para el curso CS50 de Harvard.
+ContratoExpress v3.3 es una aplicación web full-stack desarrollada con Flask como proyecto final para el curso CS50 de Harvard. Esta herramienta está diseñada específicamente para técnicos, electricistas, plomeros, tutores, freelancers y cualquier profesional que necesite documentar acuerdos de servicios simples de manera rápida, profesional y legalmente válida.
 
 ## Sobre el Autor y Contexto del Proyecto
 
@@ -12,7 +12,9 @@ Soy un profesional certificado en ciberseguridad y programación con experiencia
 
 Aproveché mi base técnica previa para avanzar con agilidad a través de los módulos fundamentales, lo que me permitió dedicar el grueso de mi tiempo a desarrollar un proyecto final robusto: ContratoExpress. Este enfoque me posibilitó aplicar las mejores prácticas de seguridad que ya conocía, integrándolas con la rigurosidad metodológica que exige CS50, validando así mis habilidades ante la comunidad técnica global.
 
-### Características Principales
+Tomé el curso completo de 10 semanas y lo completé en tiempo récord porque cuando tienes fundamentos sólidos en ciberseguridad y desarrollo, puedes identificar rápidamente qué conceptos son esenciales y cuáles son redundantes para tu nivel. Esto no es arrogancia; es eficiencia basada en competencia demostrada.
+
+## ¿Qué problema resuelve?
 
 - **Sistema de Autenticación Seguro**: Implementa registro e inicio de sesión robustos con hash de contraseñas (usando `werkzeug.security`), gestión de sesiones y protección CSRF para prevenir vulnerabilidades web comunes.
 - **Generación Dinámica de Contratos**: Los usuarios pueden seleccionar entre múltiples tipos de contrato (ej. Arrendamientos, Contratos de Servicio, NDAs) e ingresar detalles específicos. El sistema llena inteligentemente las plantillas basándose en estas entradas.
@@ -64,7 +66,108 @@ En cambio, mi enfoque estuvo enteramente en refinar la experiencia de usuario, o
 
 ### Cómo Ejecutar
 
-Para ejecutar este proyecto localmente:
+1. **Validación del lado del cliente (JavaScript)**: Feedback inmediato al usuario, mejora UX
+2. **Validación del lado del servidor (Python)**: Defensa real contra manipulaciones, nunca confiar en el cliente
+3. **Validaciones específicas**:
+   - Prestador y cliente no pueden ser la misma persona (verificado por nombre y teléfono)
+   - Emails con regex que cumple RFC 5322
+   - Teléfonos: mínimo 7 dígitos numéricos
+   - Montos: positivos, coherencia aritmética entre anticipo + resto = total (con tolerancia floating-point de 0.01)
+   - Fechas: formato ISO 8601, no permiten fechas pasadas
+   - Archivos: verificación de extensión Y MIME type real (no confiar solo en la extensión)
+   - Campos obligatorios condicionales según opciones seleccionadas
+
+### Gestión Completa de Documentos
+
+- **Historial persistente**: Todos los contratos del usuario almacenados en SQLite con foreign keys habilitadas
+- **Vista previa renderizada**: Diseño profesional listo para revisión antes de imprimir
+- **Impresión optimizada**: CSS `@media print` con salto de página automático antes de firmas
+- **Eliminación segura**: Borrado de registros y archivos asociados sin dejar residuos
+- **Subida de logos**: Vista previa en tiempo real, almacenamiento seguro con nombres únicos por usuario y timestamp
+
+## Estructura del Proyecto y Justificación Arquitectónica
+
+### app.py - Controlador Principal
+
+Centraliza toda la lógica de rutas y configuración de Flask. Incluye:
+
+- Inicialización de la aplicación con claves de seguridad configurables vía variables de entorno
+- Configuración de headers de seguridad HTTP (X-Content-Type-Options: nosniff, X-Frame-Options: SAMEORIGIN, X-XSS-Protection)
+- Decorador `login_required` implementado con `functools.wraps` para preservar metadatos de funciones
+- Rutas CRUD completas para contratos
+- Validación de MIME types leyendo los primeros bytes del archivo (magic numbers)
+- Manejo de uploads con límites de tamaño (2MB máximo)
+
+Decisión de diseño: Mantener las rutas en un solo archivo facilita la comprensión inicial del flujo, aunque en proyectos enterprise separaría blueprints. Para este scope, la legibilidad prima sobre la modularidad extrema.
+
+### rules.py - Módulo de Lógica de Negocio
+
+Separé las validaciones y funciones de usuario en este módulo siguiendo el principio de responsabilidad única:
+
+- `validate_contract()`: Función pura que recibe un diccionario y retorna lista de errores
+- `register_user()` / `login_user()`: Abstracción de operaciones de base de datos con manejo de excepciones
+- `get_db()`: Factory function que configura conexión SQLite con PRAGMA foreign_keys ON
+
+Esta separación permite testing unitario futuro sin importar toda la aplicación Flask, y mantiene el controlador limpio.
+
+### Base de Datos SQLite
+
+Elección deliberada para este contexto:
+
+- Cero configuración requerida
+- Portabilidad total (un solo archivo .db)
+- Suficiente para uso personal/pequeña escala
+- Transacciones ACID garantizadas
+- Foreign keys habilitadas explícitamente para integridad referencial
+
+En un entorno de producción con alta concurrencia, migraría a PostgreSQL, pero para el propósito de este proyecto y su audiencia objetivo, SQLite es la opción más pragmática.
+
+### Templates HTML
+
+Organizados jerárquicamente con herencia de plantillas:
+
+- **base.html**: Layout común con navbar responsive, sistema de alertas flash, carga de recursos
+- **login.html / register.html**: Formularios de autenticación con modal educativo integrado
+- **dashboard.html**: Panel principal con estadísticas visuales y zona de peligro para eliminación de cuenta
+- **form.html**: Formulario complejo con secciones colapsables, toggles dinámicos y validación visual
+- **history.html**: Grid responsive de tarjetas con acciones por contrato
+- **pdf_view.html**: Diseño de contrato profesional optimizado para impresión
+
+### static/style.css
+
+Diseño moderno con paleta de colores profesional (dorado #c6b512 y gris azulado #546e7a):
+
+- Variables CSS para consistencia y mantenibilidad
+- Flexbox y CSS Grid para layouts responsive
+- Animaciones sutiles (slideUp, fadeIn) para mejorar UX
+- Media queries para móviles (breakpoint 768px)
+- Reglas @media print específicas: fondo blanco, ocultar UI, forzar saltos de página
+
+### static/script.js
+
+JavaScript vanilla sin dependencias externas:
+
+- Toggles para secciones condicionales
+- Cálculo automático de montos restantes
+- Validaciones preemptivas antes del submit
+- FileReader API para vista previa de logos
+- Auto-ocultamiento de alertas tras 5 segundos
+
+## Desafíos Técnicos Superados
+
+1. **Configuración CSRF con formularios dinámicos**: Flask-WTF requiere atención especial cuando los formularios tienen campos condicionales. Solución: incluir `csrf_token()` en todos los forms y deshabilitar SSL strict para desarrollo local.
+
+2. **Validación real de imágenes**: No basta con verificar la extensión `.jpg`. Implementé lectura de magic numbers (primeros 8 bytes) para confirmar el MIME type real, previniendo ataques de subida de scripts disfrazados como imágenes.
+
+3. **Precisión floating-point en cálculos monetarios**: Comparar floats directamente es problemático. Usé tolerancia de 0.01 para validar que anticipo +resto coincida con el total.
+
+4. **Salto de página en impresión**: Lograr que las firmas aparezcan en página separada requirió investigar `page-break-before: always` y asegurar compatibilidad cross-browser.
+
+5. **Path traversal prevention**: Los nombres de archivo subidos son sanitizados, y se rechazan paths con `..` o que inicien con `/` en la ruta de serving.
+
+6. **Integridad de datos entre partes**: La validación que impide que prestador y cliente sean la misma persona fue crítica. Inicialmente no la implementé y generaba contratos lógicamente inválidos. Tuve que añadir verificaciones tanto por nombre como por teléfono para cubrir casos edge.
+
+## Cómo Ejecutar el Proyecto
 
 ```bash
 cd ContratoExpress
@@ -86,6 +189,6 @@ Aunque la versión actual es robusta, iteraciones futuras podrían incluir:
 
 Este proyecto refleja la intersección entre rigor académico y experiencia profesional. Demuestra que con una base sólida en ciberseguridad y desarrollo de software, uno puede construir herramientas que no solo son funcionales sino también seguras y listas para despliegue en el mundo real. ContratoExpress es más que un requisito de curso; es un prototipo para un producto SaaS legítimo. Mi certificación me permitió evitar errores comunes, implementar security headers desde el inicio y enfocarme en crear algo útil en lugar de luchar con conceptos básicos, elevando este proyecto a estándares industriales.
 
----
+ContratoExpress v3.3 demuestra dominio práctico de desarrollo web seguro, arquitectura de software limpia y atención al detalle en UX. No es solo un requisito académico cumplido; es una herramienta funcional lista para uso real. La velocidad de ejecución (menos de una semana para completar 10 semanas de contenido) refleja experiencia previa sólida, no atajos en calidad. Cada característica fue probada, cada vulnerabilidad potencial considerada, cada línea de código justificada.
 
-*Proyecto desarrollado como proyecto final de CS50 Introduction to Computer Science, Harvard University, 2026.*
+Este proyecto está disponible bajo licencia abierta para quien quiera auditar el código, aprender de las decisiones tomadas o usarlo como base para sus propias soluciones. Como profesional de ciberseguridad, invito a cualquiera a revisar el código críticamente —la seguridad por oscuridad no es seguridad, y el código abierto permite auditoría comunitaria que fortalece el producto final.
