@@ -24,6 +24,14 @@ venv/
 EOF
 
 # aqui van las reglas de validacion y db
+# Open DB connection
+# Keeping validations together made debugging easier
+# Keep form checks here
+# Clean phone input first
+# Check for obvious duplicates
+# Logical date check
+# Amount arithmetic check
+# DB logic to keep app.py clean
 cat > rules.py << 'EOF'
 import sqlite3, re
 from datetime import datetime, date
@@ -46,6 +54,7 @@ def validate_contract(data):
         errors.append("Nombre del cliente muy corto.")
     if len(data.get('city_location', '')) < 3:
         errors.append("Falta la ciudad de expedición.")
+    # Clean phone input first
     phone_p = data.get('provider_phone', '').replace(" ", "").replace("-", "")
     phone_c = data.get('client_phone', '').replace(" ", "").replace("-", "")
     if not phone_p.isdigit() or len(phone_p) < 7:
@@ -64,6 +73,7 @@ def validate_contract(data):
         if data.get('payment_structure') == 'advance':
             advance = float(data.get('advance_amount', 0))
             remaining = float(data.get('remaining_amount', 0))
+            # Amount arithmetic check
             if abs((advance + remaining) - total) > 0.01:
                 errors.append("La suma del anticipo y resto no coincide con el total.")
     except (ValueError, TypeError):
@@ -74,6 +84,7 @@ def validate_contract(data):
             errors.append("Falta la fecha límite.")
         else:
             deadline = datetime.strptime(deadline_str, '%Y-%m-%d').date()
+            # Logical date check
             if deadline < date.today():
                 errors.append("La fecha límite no puede ser en el pasado.")
     except ValueError:
@@ -116,6 +127,7 @@ def login_user(username, password):
     return None
 EOF
 
+# Main routes for ContratoExpress
 # app principal de flask
 cat > app.py << 'EOF'
 from flask import Flask, render_template, request, redirect, session, flash, url_for, send_from_directory, abort
@@ -129,7 +141,7 @@ app.config['WTF_CSRF_SSL_STRICT'] = False
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}  # We only accept these for professional looks
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 # El error de CSRF me hizo querer tirar la toalla, pero ya quedó
@@ -195,6 +207,7 @@ def init_db():
 
 init_db()
 
+# Custom login required decorator
 def login_required(f):
     @functools.wraps(f)
     def decorated_function(*args, **kwargs):
@@ -213,6 +226,7 @@ def add_security_headers(response):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+# Security check: verify actual file content (Magic Numbers)
 # Por fin arreglé lo del MIME, casi me rindo
 def validate_image_mime(file):
     file.seek(0)
@@ -222,6 +236,7 @@ def validate_image_mime(file):
             header.startswith(b'\xff\xd8\xff') or 
             header.startswith(b'GIF87a') or header.startswith(b'GIF89a'))
 
+# Auth Routes
 @app.route('/')
 def index():
     if 'user_id' in session:
@@ -307,6 +322,7 @@ def delete_account():
     flash("Cuenta eliminada.", "warning")
     return redirect(url_for('register'))
 
+# Contract Management
 @app.route('/new_contract', methods=['GET', 'POST'])
 @login_required
 def new_contract():
@@ -465,6 +481,7 @@ def history():
 @app.route('/view/<int:contract_id>')
 @login_required
 def view_contract(contract_id):
+    # PDF engine: simple but effective with @media print
     conn = get_db()
     contract = conn.execute("SELECT * FROM contracts WHERE id = ? AND user_id = ?", (contract_id, session['user_id'])).fetchone()
     conn.close()
@@ -2390,6 +2407,9 @@ body {
 EOF
 
 # JavaScript para interacciones
+# Real-time math for the user
+# Dynamic UI toggles
+# Validation before submit to save server resources
 cat > static/script.js << 'EOF'
 function showHelp() {
     document.getElementById('helpModal').classList.add('active');
@@ -2408,6 +2428,7 @@ window.onclick = function(event) {
     }
 }
 
+// Dynamic UI toggles
 function toggleOtherService() {
     const type = document.getElementById('serviceType').value;
     const customGroup = document.getElementById('customServiceGroup');
@@ -2432,12 +2453,14 @@ function toggleOtherService() {
     }
 }
 
+// Dynamic UI toggles
 function toggleMaterials() {
     const checkbox = document.getElementById('hasMaterials');
     const options = document.getElementById('materialsOptions');
     options.style.display = checkbox.checked ? 'block' : 'none';
 }
 
+// Real-time math for the user
 function calcRemaining() {
     const structure = document.getElementById('payStructure').value;
     const total = parseFloat(document.getElementById('totalAmount').value) || 0;
@@ -2526,6 +2549,7 @@ function previewLogo(input) {
     }
 }
 
+// Validation before submit to save server resources
 document.getElementById('contractForm').addEventListener('submit', function(e) {
     const total = parseFloat(document.getElementById('totalAmount').value);
     if (isNaN(total) || total <= 0) {
