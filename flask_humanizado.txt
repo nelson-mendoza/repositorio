@@ -2536,7 +2536,7 @@ body {
         display: block;
     }
     .signatures-section::after {
-        content: "";1rem
+        content: "";
         display: table;
         clear: both;
     }
