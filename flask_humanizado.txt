@@ -734,10 +734,11 @@ def descargar_pdf(contract_id):
         pdf.generate()
         
         # Generar PDF en memoria
-        pdf_buffer = io.BytesIO()
-        pdf_output = pdf.output(dest='S').encode('latin-1', errors='replace')
-        pdf_buffer.write(pdf_output)
-        pdf_buffer.seek(0)
+        pdf_output = pdf.output(dest='S')
+        # pdf.output('S') returns bytes/bytearray, no need to encode
+        if isinstance(pdf_output, bytearray):
+            pdf_output = bytes(pdf_output)
+        pdf_buffer = io.BytesIO(pdf_output)
         
         filename = f"contrato_{contract_id}.pdf"
         return send_file(
