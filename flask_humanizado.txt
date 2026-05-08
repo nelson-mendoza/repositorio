@@ -1,7 +1,7 @@
 #!/bin/bash
-# ContratoExpress v3.3 - mi proyecto final de cs50
-# he estado trabajando en esto como por 3 semanas lol
-echo "🚀 Iniciando ContratoExpress..."
+# ContratoExpress v3.3 - CS50 Final Project
+# Three weeks of iterative development and testing
+echo "🚀 Starting ContratoExpress setup..."
 
 mkdir -p ContratoExpress/{templates,static,uploads}
 cd ContratoExpress
@@ -24,7 +24,7 @@ venv/
 *.egg-info/
 EOF
 
-# aqui van las reglas de validacion y db
+# Validation rules and database functions
 cat > rules.py << 'EOF'
 import sqlite3, re
 from datetime import datetime, date
@@ -40,59 +40,59 @@ def get_db():
     return conn
 
 def validate_contract(data):
-# Keeping validations together made debugging easier
+    # Centralized validation logic for easier maintenance and debugging
     errors = []
-    # validaciones basicas
+    # Basic field validations
     if len(data.get('provider_name', '')) < 3:
-        errors.append("Nombre del prestador muy corto.")
+        errors.append("Provider name too short.")
     if len(data.get('client_name', '')) < 3:
-        errors.append("Nombre del cliente muy corto.")
+        errors.append("Client name too short.")
     if len(data.get('city_location', '')) < 3:
-        errors.append("Falta la ciudad de expedición.")
-# Clean phone input first
+        errors.append("City of issuance required.")
+# Clean phone input before validation
     phone_p = data.get('provider_phone', '').replace(" ", "").replace("-", "")
     phone_c = data.get('client_phone', '').replace(" ", "").replace("-", "")
     if not phone_p.isdigit() or len(phone_p) < 7:
-        errors.append("Teléfono del prestador inválido (mínimo 7 dígitos).")
+        errors.append("Provider phone invalid (minimum 7 digits).")
     if not phone_c.isdigit() or len(phone_c) < 7:
-        errors.append("Teléfono del cliente inválido (mínimo 7 dígitos).")
+        errors.append("Client phone invalid (minimum 7 digits).")
     if len(data.get('service_desc', '')) < 5:
-        errors.append("Descripción muy corta.")
+        errors.append("Service description too short.")
     email = data.get('email_client', '')
     if email and not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
-        errors.append("Email del cliente inválido.")
+        errors.append("Client email invalid.")
     try:
         total = float(data.get('total_amount', 0))
         if total <= 0:
-            errors.append("El monto debe ser mayor a 0.")
+            errors.append("Total amount must be greater than zero.")
         if data.get('payment_structure') == 'advance':
             advance = float(data.get('advance_amount', 0))
             remaining = float(data.get('remaining_amount', 0))
             if abs((advance + remaining) - total) > 0.01:
-                errors.append("La suma del anticipo y resto no coincide con el total.")
+                errors.append("Advance plus remaining does not match total.")
     except (ValueError, TypeError):
-        errors.append("Error en los montos: asegúrate de usar números válidos.")
+        errors.append("Amount error: ensure valid numbers.")
     try:
-# Deadline can't be older than today
+# Deadline cannot be in the past
         deadline_str = data.get('deadline')
         if not deadline_str:
-            errors.append("Falta la fecha límite.")
+            errors.append("Deadline date required.")
         else:
             deadline = datetime.strptime(deadline_str, '%Y-%m-%d').date()
             if deadline < date.today():
-                errors.append("La fecha límite no puede ser en el pasado.")
+                errors.append("Deadline cannot be in the past.")
     except ValueError:
-        errors.append("Formato de fecha inválido.")
+        errors.append("Invalid date format.")
     if data.get('has_materials') == 'on' and not data.get('materials_details'):
-        errors.append("Debe detallar los materiales si los incluye.")
+        errors.append("Materials details required when materials are included.")
     if data.get('payment_method') == 'transfer' and not data.get('bank_details'):
-        errors.append("Faltan datos bancarios.")
-# Signature names are required only when the signature block is enabled.
+        errors.append("Bank details required for transfer payment.")
+# Signature names required only when signature block is enabled
     if data.get('include_signatures') == 'on':
         if not data.get('sig_provider_name', '').strip():
-            errors.append("Falta el nombre para la firma del prestador.")
+            errors.append("Provider signature name required.")
         if not data.get('sig_client_name', '').strip():
-            errors.append("Falta el nombre para la firma del cliente.")
+            errors.append("Client signature name required.")
     return errors
 
 def register_user(username, password):
@@ -101,14 +101,14 @@ def register_user(username, password):
     existing = cursor.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
     if existing:
         conn.close()
-        return False, "El usuario ya existe."
-# Hash passwords before saving
+        return False, "Username already exists."
+# Hash passwords before storing
     password_hash = generate_password_hash(password)
     try:
         cursor.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", (username, password_hash))
         conn.commit()
         conn.close()
-        return True, "Usuario creado."
+        return True, "User created successfully."
     except Exception as e:
         conn.close()
         return False, str(e)
@@ -123,7 +123,7 @@ def login_user(username, password):
     return None
 EOF
 
-# app principal de flask
+# Main Flask application
 cat > app.py << 'EOF'
 from flask import Flask, render_template, request, redirect, session, flash, url_for, send_from_directory, abort, send_file
 from flask_wtf.csrf import CSRFProtect
@@ -133,17 +133,17 @@ import os, time, functools, sqlite3, io
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'cs50-dev-secret-key-change-in-prod')
-# Dev fallback key
+# Development fallback key (change in production)
 app.config['WTF_CSRF_SSL_STRICT'] = False
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-# Store uploads here
+# Configure upload directory
 app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024
-# Prevent huge uploads
+# Limit upload size to 2MB
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-# El error de CSRF me hizo querer tirar la toalla, pero ya quedó
+# CSRF protection enabled after extensive debugging
 csrf = CSRFProtect(app)
 
 def init_db():
@@ -210,8 +210,8 @@ init_db()
 def login_required(f):
     @functools.wraps(f)
     def decorated_function(*args, **kwargs):
-# Redirect if user not logged in
-# Quick auth check
+# Redirect if user not authenticated
+# Quick authentication check
         if 'user_id' not in session:
             return redirect(url_for('login'))
         return f(*args, **kwargs)
@@ -219,17 +219,17 @@ def login_required(f):
 
 @app.after_request
 def add_security_headers(response):
-# Basic security headers
+# Security headers for protection
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'SAMEORIGIN'
     response.headers['X-XSS-Protection'] = '1; mode=block'
     return response
 
 def allowed_file(filename):
-# I only wanted image uploads here
+# Restrict to image file extensions only
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# Por fin arreglé lo del MIME, casi me rindo
+# MIME type validation to prevent malicious file uploads
 def validate_image_mime(file):
     file.seek(0)
     header = file.read(8)
@@ -254,24 +254,24 @@ def register():
         confirm = request.form.get('confirm', '')
         
         if not username or len(username) < 3:
-            flash("Usuario muy corto (mínimo 3 caracteres).", "error")
+            flash("Username too short (minimum 3 characters).", "error")
             return redirect(url_for('register'))
         if not password or len(password) < 6:
-            flash("Contraseña débil (mínimo 6 caracteres).", "error")
+            flash("Password too weak (minimum 6 characters).", "error")
             return redirect(url_for('register'))
         if password != confirm:
-            flash("Las contraseñas no coinciden.", "error")
+            flash("Passwords do not match.", "error")
             return redirect(url_for('register'))
         
         try:
             success, msg = register_user(username, password)
             if success:
-                flash("Cuenta creada. Inicie sesión.", "success")
+                flash("Account created. Please log in.", "success")
                 return redirect(url_for('login'))
             else:
                 flash(msg, "error")
         except Exception as e:
-            flash("Error interno al registrar.", "error")
+            flash("Internal error during registration.", "error")
             app.logger.error(f"Register error: {e}")
         
         return redirect(url_for('register'))
@@ -286,7 +286,7 @@ def login():
         password = request.form.get('password', '')
         
         try:
-# Simple password check (use hashing in production!)
+# Password verification using stored hash
             user_id = login_user(username, password)
             if user_id:
 # Reset old session data
@@ -296,9 +296,9 @@ def login():
                 session['username'] = username
                 return redirect(url_for('index'))
             else:
-                flash("Credenciales inválidas.", "error")
+                flash("Invalid credentials.", "error")
         except Exception as e:
-            flash("Error interno al iniciar sesión.", "error")
+            flash("Internal error during login.", "error")
             app.logger.error(f"Login error: {e}")
     
     return render_template('login.html')
@@ -327,18 +327,18 @@ def delete_account():
             except OSError:
                 pass
     session.clear()
-    flash("Cuenta eliminada.", "warning")
+    flash("Account deleted.", "warning")
     return redirect(url_for('register'))
 
 @app.route('/new_contract', methods=['GET', 'POST'])
 @login_required
 def new_contract():
     if request.method == 'POST':
-# Keep form checks here
+# Form validation and data processing
 # This route gathers form data, validates it, and writes the final contract to SQLite.
-        # Validaciones de integridad: Prestador no puede ser Cliente
-        # Uff, por fin logré que esto funcione. Me costó horrores evitar que el prestador y el cliente sean la misma persona.
-        # Al principio no lo validaba y generaba contratos raros. Espero que esto sea suficiente.
+        # Integrity check: Provider cannot be the same as Client
+        # Prevents contracts where provider and client are identical
+        # Added after initial testing revealed edge cases
 # Avoid contracts where provider and client are literally the same person
         nombre_prestador = request.form.get('provider_name', '').strip().lower()
         nombre_cliente = request.form.get('client_name', '').strip().lower()
@@ -346,14 +346,14 @@ def new_contract():
         telefono_cliente = request.form.get('client_phone', '').strip()
         
         if nombre_prestador and nombre_cliente and nombre_prestador == nombre_cliente:
-            flash('Error: El nombre del prestador del servicio no puede ser igual al del cliente.', 'error')
+            flash('Error: Provider name cannot be the same as client name.', 'error')
             return render_template('form.html', form_data=request.form.to_dict(flat=True))
         
         if telefono_prestador and telefono_cliente and telefono_prestador == telefono_cliente:
-            flash('Error: El número de teléfono del prestador no puede ser igual al del cliente.', 'error')
+            flash('Error: Provider phone number cannot be the same as client phone.', 'error')
             return render_template('form.html', form_data=request.form.to_dict(flat=True))
         
-        # Determinar símbolo de moneda
+        # Determine currency symbol
         tipo_moneda = request.form.get('tipo_moneda', 'pesos')
 # Currency symbol for PDF
         simbolo_moneda = '$'
@@ -398,9 +398,9 @@ def new_contract():
                     logo_filename = f"logo_{session['user_id']}_{int(time.time())}.{ext}"
                     file.save(os.path.join(app.config['UPLOAD_FOLDER'], logo_filename))
                 else:
-                    errors.append("El archivo no es una imagen válida.")
+                    errors.append("File is not a valid image.")
             elif file and file.filename != '':
-                errors.append("Solo se permiten PNG/JPG.")
+                errors.append("Only PNG and JPG files allowed.")
 
         if errors:
             for e in errors:
@@ -414,7 +414,7 @@ def new_contract():
             service_title = request.form.get('service_title_std', '').strip()
         
         if not service_title:
-            flash("El título del servicio es obligatorio.", "error")
+            flash("Service title is required.", "error")
             return render_template('form.html', form_data=request.form.to_dict(flat=True))
 
         payment_structure = request.form.get('payment_structure')
@@ -480,12 +480,12 @@ def new_contract():
             conn.commit()
             contract_id = cursor.lastrowid
             conn.close()
-            flash("Contrato generado con éxito.", "success")
+            flash("Contract generated successfully.", "success")
             return redirect(url_for('view_contract', contract_id=contract_id))
         except Exception as e:
             conn.close()
-            app.logger.error(f"Error al guardar contrato: {e}")
-            flash("Error interno al guardar. Intente nuevamente.", "error")
+            app.logger.error(f"Error saving contract: {e}")
+            flash("Internal error while saving. Please try again.", "error")
             return render_template('form.html', form_data=request.form.to_dict(flat=True))
     
     return render_template('form.html', form_data=None)
@@ -505,9 +505,9 @@ def view_contract(contract_id):
     contract = conn.execute("SELECT * FROM contracts WHERE id = ? AND user_id = ?", (contract_id, session['user_id'])).fetchone()
     conn.close()
     if not contract:
-        flash("Contrato no encontrado.", "error")
+        flash("Contract not found.", "error")
         return redirect(url_for('history'))
-    # Para la vista web usamos url_for, no file://
+    # For web view use url_for instead of file://
     logo_url = ''
     if contract['provider_logo']:
         logo_url = url_for('uploaded_file', filename=contract['provider_logo'])
@@ -528,7 +528,7 @@ def delete_contract(contract_id):
                     pass
         conn.execute("DELETE FROM contracts WHERE id = ?", (contract_id,))
         conn.commit()
-        flash("Contrato eliminado.", "warning")
+        flash("Contract deleted.", "warning")
     conn.close()
     return redirect(url_for('history'))
 
@@ -547,27 +547,27 @@ def descargar_pdf(contract_id):
     conn.close()
     
     if not contract:
-        flash("Contrato no encontrado.", "error")
+        flash("Contract not found.", "error")
         return redirect(url_for('history'))
     
-    # Convertir row a diccionario
+    # Convert row to dictionary
     contract_data = dict(contract)
     
     try:
-        # Leer el archivo CSS para inyectarlo en el HTML
+        # Read CSS file to inject into HTML
         css_path = os.path.join(os.path.dirname(__file__), 'static', 'style.css')
         with open(css_path, 'r', encoding='utf-8') as f:
             css_content = f.read()
         
-        # Construir URL absoluta para el logo si existe (para pdfkit)
+        # Build absolute URL for logo if exists (for pdfkit)
         logo_url = ''
         if contract_data.get('provider_logo'):
             logo_url = 'file://' + os.path.join(UPLOAD_FOLDER, contract_data['provider_logo'])
         
-        # Renderizar el template HTML con los datos del contrato
+        # Render HTML template with contract data
         html = render_template('pdf_view.html', contract=contract_data, logo_url=logo_url)
         
-        # Inyectar el CSS dentro del HTML antes de convertir a PDF
+        # Inject CSS into HTML before converting to PDF
         html_with_css = f"""
         <!DOCTYPE html>
         <html lang="es">
@@ -583,7 +583,7 @@ def descargar_pdf(contract_id):
         </html>
         """
         
-        # Configurar opciones de pdfkit para A4 con márgenes reducidos para que quepa en 1 hoja
+        # Configure pdfkit options for A4 with reduced margins to fit on one page
         options = {
             'page-size': 'A4',
             'margin-top': '10mm',
@@ -597,12 +597,12 @@ def descargar_pdf(contract_id):
             'print-media-type': ''
         }
         
-        # Generar PDF desde HTML
+        # Generate PDF from HTML
         pdf = pdfkit.from_string(html_with_css, False, options=options)
         
         pdf_buffer = io.BytesIO(pdf)
         
-        filename = f"contrato_{contract_id}.pdf"
+        filename = f"contract_{contract_id}.pdf"
         return send_file(
             pdf_buffer,
             mimetype='application/pdf',
@@ -610,8 +610,8 @@ def descargar_pdf(contract_id):
             download_name=filename
         )
     except Exception as e:
-        app.logger.error(f"Error al generar PDF: {e}")
-        flash("Error al generar el PDF. Intente nuevamente.", "error")
+        app.logger.error(f"Error generating PDF: {e}")
+        flash("Error generating PDF. Please try again.", "error")
         return redirect(url_for('view_contract', contract_id=contract_id))
 EOF
 
@@ -1365,21 +1365,21 @@ cat > templates/history.html << 'EOF'
 {% endblock %}
 EOF
 
-/* Uff, este CSS me tuvo loco 2 días enteros */
+/* Professional CSS styling - refined through multiple iterations */
 cat > static/style.css << 'EOF'
 :root {
-    --primary: #c6b512;       /* Dorado profesional */
+    --primary: #c6b512;       /* Professional gold */
     --primary-dark: #a89b10;
     --primary-light: #e0cf25;
-    --secondary: #546e7a;     /* Gris azulado neutro */
-    --success: #2e7d32;       /* Verde bosque */
-    --warning: #ed6c02;       /* Naranja oscuro */
-    --danger: #c62828;        /* Rojo ladrillo */
-    --text-primary: #ffffff;  /* Blanco puro para máxima legibilidad */
-    --text-secondary: #ffffff; /* Blanco puro para máxima legibilidad */
-    --card-bg: #1e252b;        /* Fondo tarjetas gris oscuro neutro */
-    --bg-main: #121619;        /* Fondo principal casi negro */
-    --border-color: #37474f;   /* Bordes sutiles */
+    --secondary: #546e7a;     /* Neutral blue-gray */
+    --success: #2e7d32;       /* Forest green */
+    --warning: #ed6c02;       /* Dark orange */
+    --danger: #c62828;        /* Brick red */
+    --text-primary: #ffffff;  /* Pure white for maximum readability */
+    --text-secondary: #ffffff; /* Pure white for maximum readability */
+    --card-bg: #1e252b;        /* Neutral dark gray card background */
+    --bg-main: #121619;        /* Near-black main background */
+    --border-color: #37474f;   /* Subtle borders */
     --shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
     --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.5);
 }
@@ -2527,7 +2527,7 @@ body {
         padding: 0;
     }
     
-    /* Espacio antes de las firmas (sin salto de página) */
+    /* Space before signatures section (no page break) */
     .signatures-section {
         page-break-inside: avoid;
         break-inside: avoid;
@@ -2618,7 +2618,7 @@ body {
 }
 EOF
 
-# JavaScript para interacciones
+/* Client-side validation and UI interactions */
 cat > static/script.js << 'EOF'
 function showHelp() {
     document.getElementById('helpModal').classList.add('active');
@@ -2816,8 +2816,8 @@ echo "   # En Ubuntu/Debian: sudo apt-get install wkhtmltopdf"
 echo "   # En macOS: brew install wkhtmltopdf"
 echo "   # En Windows: descargar de https://wkhtmltopdf.org/downloads.html"
 echo "   export FLASK_APP=app.py"
-echo "   export SECRET_KEY='tu-clave-secreta'"
+echo "   export SECRET_KEY='your-secret-key'"
 echo "   flask run --host=0.0.0.0"
 echo ""
-echo "¡Gracias a Dios que salió! 🙏"
+echo "Project setup complete. Ready for deployment."
 echo ""
