@@ -1173,7 +1173,7 @@ cat > templates/pdf_view.html << 'EOF'
 </div>
 <div class="paper-sheet">
     <div class="pdf-content">
-    <div class="pdf-header">
+    <div class="pdf-header clearfix">
         <div class="header-left">
             {% if logo_url %}
                 <img src="{{ logo_url }}" class="company-logo" crossorigin="anonymous">
@@ -2299,16 +2299,16 @@ body {
 }
 
 .pdf-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
+    position: relative;
     padding-bottom: 1rem;
     border-bottom: 2px solid #333333;
     margin-bottom: 1.5rem;
+    min-height: 80px;
 }
 
 .header-left {
-    flex: 1;
+    float: left;
+    width: 30%;
 }
 
 .company-logo {
@@ -2330,8 +2330,12 @@ body {
 }
 
 .header-center {
-    flex: 2;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
     text-align: center;
+    top: 0;
+    width: 40%;
 }
 
 .header-center h1 {
@@ -2349,7 +2353,8 @@ body {
 }
 
 .header-right {
-    flex: 1;
+    float: right;
+    width: 30%;
     text-align: right;
     font-size: 9pt;
 }
@@ -2361,6 +2366,12 @@ body {
 
 .header-right p {
     margin: 0.1rem 0;
+}
+
+.clearfix::after {
+    content: "";
+    display: table;
+    clear: both;
 }
 
 .pdf-section {
@@ -2404,16 +2415,27 @@ body {
 }
 
 .signatures-section {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 1.5rem;
+    display: block;
     margin-top: 3rem;
     padding-top: 1.5rem;
     border-top: 1px solid #cccccc;
 }
 
+.signatures-section::after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
 .sig-box {
+    float: left;
+    width: 30%;
     text-align: center;
+    margin-right: 5%;
+}
+
+.sig-box:last-child {
+    margin-right: 0;
 }
 
 .sig-line {
@@ -2511,15 +2533,23 @@ body {
         break-inside: avoid;
         margin-top: 1rem;
         padding-top: 1rem;
-        display: flex;
-        flex-direction: row;
-        justify-content: space-between;
-        gap: 20px;
+        display: block;
     }
-    .signature-box {
+    .signatures-section::after {
+        content: "";
+        display: table;
+        clear: both;
+    }
+    .sig-box {
         page-break-inside: avoid;
         break-inside: avoid;
-        width: 45%;
+        float: left;
+        width: 30%;
+        text-align: center;
+        margin-right: 5%;
+    }
+    .sig-box:last-child {
+        margin-right: 0;
     }
     
     .pdf-header {
