@@ -44,46 +44,40 @@ Para ejecutar este proyecto localmente o en un entorno similar a CS50, sigue est
 
 **Nota importante:** Debido a que el entorno de CS50 y muchos contenedores Linux tienen configuraciones específicas, los repositorios oficiales a veces presentan conflictos de versiones con el motor de renderizado de PDF. Para asegurar que el proyecto funcione "a la primera" sin que pierdas horas debuggeando, he incluido el paquete binario necesario directamente en el repositorio. Créeme, ya pasé por dolores de cabeza con esto y no quiero que pierdas tiempo.
 
-### 1. Dependencias de Python
-Primero, crea un entorno virtual (recomendado) e instala las librerías necesarias de Flask y gestión de formularios:
+### Pasos de Instalación
 
-```bash
-python3 -m venv venv
-source venv/bin/activate  # En Windows: venv\Scripts\activate
-pip install -r requirements.txt
-```
+1. **Navega a la carpeta del proyecto:**
+   ```bash
+   cd ContratoExpress/
+   ```
 
-### 2. Motor de Renderizado (PDF)
-Para que la generación de contratos funcione, es indispensable instalar el motor `wkhtmltopdf`. 
+2. **Instala las dependencias de Python:**
+   Primero, instala las librerías necesarias de Flask y gestión de formularios:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-**Opción A: Instalación automática (Recomendada para CS50/Codespaces)**
-Para evitar errores de repositorios desactualizados, usa el paquete `.deb` incluido en la raíz del proyecto:
+3. **Instala el motor de renderizado PDF:**
+   Para que la generación de contratos funcione, es indispensable instalar `wkhtmltopdf`. Usa el paquete `.deb` incluido en la raíz del proyecto para evitar conflictos con los repositorios desactualizados del entorno:
+   ```bash
+   sudo dpkg -i wkhtmltopdf_0.12.6-2build2_amd64.deb
+   ```
 
-```bash
-# Instalación directa del paquete incluido
-sudo dpkg -i wkhtmltopdf_0.12.6-2build2_amd64.deb
+4. **Corrige dependencias rotas (Paso crucial):**
+   Este comando arreglará automáticamente cualquier dependencia faltante que haya quedado pendiente tras la instalación manual del paquete:
+   ```bash
+   sudo apt install -f
+   ```
+   > **¡No te saltes este paso!** Durante el desarrollo, este fue el comando que salvó mi proyecto. Los repositorios de CS50 Codespaces estaban desactualizados y causaban conflictos. Ejecutar `sudo apt install -f` fuerza al sistema a resolver e instalar las dependencias base necesarias que el paquete `.deb` requiere pero que no pudo encontrar inicialmente. Es una decisión de ingeniería pragmática: priorizar la funcionalidad consistente sobre la pureza teórica de la instalación.
 
-# En caso de que falte alguna dependencia base en el entorno, 
-# este comando las corregirá automáticamente (¡no te saltes este paso!):
-sudo apt install -f
-```
+5. **Ejecuta la aplicación:**
+   Una vez completados los pasos anteriores, simplemente ejecuta:
+   ```bash
+   flask run
+   ```
+   Y abre tu navegador en la URL que aparecerá en la terminal (usualmente `http://127.0.0.1:5000` o un enlace web de Codespaces).
 
-**Opción B: Instalación desde repositorio (Solo si la Opción A falla en tu máquina local)**
-Si estás en una máquina Ubuntu actualizada, podrías intentar:
-```bash
-sudo apt-get update
-sudo apt-get install wkhtmltopdf
-```
-
-> **¿Por qué incluí el archivo .deb?** Durante el desarrollo, pasé por un "infierno de dependencias" donde `apt` intentaba instalar una versión incompatible que rompía la generación de PDFs. Al incluir el binario específico que sé que funciona, estoy siendo transparente sobre ese desafío y ahorrándote esa misma frustración a ti o al revisor. Es una decisión de ingeniería pragmática: priorizar la funcionalidad consistente sobre la pureza teórica de la instalación. Confía en mí, te vas a ahorrar varias horas de frustración.
-
-### 3. Ejecución
-Una vez instaladas las dependencias y el motor PDF, simplemente ejecuta:
-
-```bash
-python app.py
-```
-Y abre tu navegador en `http://127.0.0.1:5000`.
+> **¿Por qué lo puse así?** Durante el desarrollo, pasé por un "infierno de dependencias" donde `apt` intentaba instalar versiones incompatibles que rompían la generación de PDFs. Al incluir el binario específico y usar el comando de reparación, estoy siendo transparente sobre ese desafío y ahorrándote esa misma frustración a ti o al revisor. Confía en mí, te vas a ahorrar varias horas de frustración siguiendo este orden exacto.
 
 ---
 
