@@ -445,9 +445,8 @@ def new_contract():
         conn = get_db()
         cursor = conn.cursor()
         try:
-            # Mañana reviso si los INSERT coinciden bien con las columnas
+            # Save to DB
             cursor.execute('''
-# Save to DB
                 INSERT INTO contracts (
                     user_id, city_location, provider_name, provider_phone, provider_logo,
                     client_name, client_phone, service_type, service_title, service_desc,
