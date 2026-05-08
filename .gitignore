@@ -1,16 +1,4 @@
 ```
-# Environment
-.env
-.env.local
-.env.*
-
-# Logs and temp files
-*.log
-*.tmp
-
-# Editors
-.vscode/
-
 # Python
 __pycache__/
 *.pyc
@@ -20,6 +8,8 @@ __pycache__/
 env/
 venv/
 .venv/
+.ENV
+.venv.bak/
 pip-log.txt
 pip-delete-this-directory.txt
 .tox/
@@ -30,10 +20,9 @@ nosetests.xml
 coverage.xml
 *.cover
 *.log
-.ipynb_checkpoints
-.pytest_cache/
-.mypy_cache/
+.git/refs/original/
 .hypothesis/
+.pytest_cache/
 
 # Distribution / packaging
 .Python
@@ -54,16 +43,29 @@ wheels/
 *.egg
 
 # IDEs
+.vscode/
 .idea/
 *.swp
 *.swo
 
-# OS generated files
+# Environment
+.env
+.env.local
+*.env.*
+
+# OS
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
+
+# Logs
+*.log
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# Temporary files
+*.tmp
+*~
 ```

@@ -5,19 +5,23 @@ from werkzeug.security import generate_password_hash, check_password_hash
 DATABASE = 'contracts.db'
 
 def get_db():
+# Open DB connection
     conn = sqlite3.connect(DATABASE)
     conn.execute("PRAGMA foreign_keys = ON")
     conn.row_factory = sqlite3.Row
     return conn
 
 def validate_contract(data):
+# Keeping validations together made debugging easier
     errors = []
+    # validaciones basicas
     if len(data.get('provider_name', '')) < 3:
         errors.append("Nombre del prestador muy corto.")
     if len(data.get('client_name', '')) < 3:
         errors.append("Nombre del cliente muy corto.")
     if len(data.get('city_location', '')) < 3:
         errors.append("Falta la ciudad de expedición.")
+# Clean phone input first
     phone_p = data.get('provider_phone', '').replace(" ", "").replace("-", "")
     phone_c = data.get('client_phone', '').replace(" ", "").replace("-", "")
     if not phone_p.isdigit() or len(phone_p) < 7:
@@ -41,6 +45,7 @@ def validate_contract(data):
     except (ValueError, TypeError):
         errors.append("Error en los montos: asegúrate de usar números válidos.")
     try:
+# Deadline can't be older than today
         deadline_str = data.get('deadline')
         if not deadline_str:
             errors.append("Falta la fecha límite.")
@@ -54,6 +59,7 @@ def validate_contract(data):
         errors.append("Debe detallar los materiales si los incluye.")
     if data.get('payment_method') == 'transfer' and not data.get('bank_details'):
         errors.append("Faltan datos bancarios.")
+# Signature names are required only when the signature block is enabled.
     if data.get('include_signatures') == 'on':
         if not data.get('sig_provider_name', '').strip():
             errors.append("Falta el nombre para la firma del prestador.")
@@ -68,6 +74,7 @@ def register_user(username, password):
     if existing:
         conn.close()
         return False, "El usuario ya existe."
+# Hash passwords before saving
     password_hash = generate_password_hash(password)
     try:
         cursor.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", (username, password_hash))

@@ -699,6 +699,9 @@ body {
     width: 100%;
     cursor: pointer;
 }
+
+#logoPreview {
+    max-width: 150px;
     max-height: 150px;
     margin-top: 1rem;
     border-radius: 0.5rem;
