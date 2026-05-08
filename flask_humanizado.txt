@@ -2531,7 +2531,7 @@ body {
     .signatures-section {
         page-break-inside: avoid;
         break-inside: avoid;
-        margin-top: 1rem;
+        margin-top: 150mm;
         padding-top: 1rem;
         display: block;
     }
