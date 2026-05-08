@@ -32,12 +32,14 @@ from werkzeug.security import generate_password_hash, check_password_hash
 DATABASE = 'contracts.db'
 
 def get_db():
+# Open DB connection
     conn = sqlite3.connect(DATABASE)
     conn.execute("PRAGMA foreign_keys = ON")
     conn.row_factory = sqlite3.Row
     return conn
 
 def validate_contract(data):
+# Keeping validations together made debugging easier
     errors = []
     # validaciones basicas
     if len(data.get('provider_name', '')) < 3:
@@ -46,6 +48,7 @@ def validate_contract(data):
         errors.append("Nombre del cliente muy corto.")
     if len(data.get('city_location', '')) < 3:
         errors.append("Falta la ciudad de expedición.")
+# Clean phone input first
     phone_p = data.get('provider_phone', '').replace(" ", "").replace("-", "")
     phone_c = data.get('client_phone', '').replace(" ", "").replace("-", "")
     if not phone_p.isdigit() or len(phone_p) < 7:
@@ -69,6 +72,7 @@ def validate_contract(data):
     except (ValueError, TypeError):
         errors.append("Error en los montos: asegúrate de usar números válidos.")
     try:
+# Deadline can't be older than today
         deadline_str = data.get('deadline')
         if not deadline_str:
             errors.append("Falta la fecha límite.")
@@ -82,6 +86,7 @@ def validate_contract(data):
         errors.append("Debe detallar los materiales si los incluye.")
     if data.get('payment_method') == 'transfer' and not data.get('bank_details'):
         errors.append("Faltan datos bancarios.")
+# Signature names are required only when the signature block is enabled.
     if data.get('include_signatures') == 'on':
         if not data.get('sig_provider_name', '').strip():
             errors.append("Falta el nombre para la firma del prestador.")
@@ -96,6 +101,7 @@ def register_user(username, password):
     if existing:
         conn.close()
         return False, "El usuario ya existe."
+# Hash passwords before saving
     password_hash = generate_password_hash(password)
     try:
         cursor.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", (username, password_hash))
@@ -117,44 +123,6 @@ def login_user(username, password):
 EOF
 
 # app principal de flask
-# Open DB connection
-# Keeping validations together made debugging easier
-# Keep form checks here
-# Clean phone input first
-# Forms send numbers as text
-# Deadline can't be older than today
-# Signature names are required only when the signature block is enabled.
-# Hash passwords before saving
-# Quick auth check
-# Dev fallback key
-# Store uploads here
-# Prevent huge uploads
-# Create tables if DB is empty
-# Main contracts table
-# Redirect if user not logged in
-# Basic security headers
-# I only wanted image uploads here
-# Check extension first
-# Check image header bytes
-# Logged users go to dashboard
-# Signup route
-# Reset old session data
-# Delete user data + uploaded logos
-# This route gathers form data, validates it, and writes the final contract to SQLite.
-# Avoid contracts where provider and client are literally the same person
-# Currency symbol for PDF
-# Optional logo upload
-# File extension alone is not enough
-# Custom service name
-# HTML forms send strings
-# Calculate remaining payment automatically
-# Only apply discount if provided
-# Save to DB
-# Generate PDF
-# Return JSON with the filename
-# Login route
-# Simple password check (use hashing in production!)
-# Set session variable
 cat > app.py << 'EOF'
 from flask import Flask, render_template, request, redirect, session, flash, url_for, send_from_directory, abort
 from flask_wtf.csrf import CSRFProtect
@@ -163,16 +131,20 @@ import os, time, functools, sqlite3
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'cs50-dev-secret-key-change-in-prod')
+# Dev fallback key
 app.config['WTF_CSRF_SSL_STRICT'] = False
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+# Store uploads here
 app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024
+# Prevent huge uploads
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 # El error de CSRF me hizo querer tirar la toalla, pero ya quedó
 csrf = CSRFProtect(app)
 
+# Create tables if DB is empty
 def init_db():
     conn = sqlite3.connect('contracts.db')
     cursor = conn.cursor()
@@ -186,6 +158,7 @@ def init_db():
         )
     ''')
     cursor.execute('''
+# Main contracts table
         CREATE TABLE IF NOT EXISTS contracts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
@@ -236,6 +209,8 @@ init_db()
 def login_required(f):
     @functools.wraps(f)
     def decorated_function(*args, **kwargs):
+# Redirect if user not logged in
+# Quick auth check
         if 'user_id' not in session:
             return redirect(url_for('login'))
         return f(*args, **kwargs)
@@ -243,12 +218,14 @@ def login_required(f):
 
 @app.after_request
 def add_security_headers(response):
+# Basic security headers
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'SAMEORIGIN'
     response.headers['X-XSS-Protection'] = '1; mode=block'
     return response
 
 def allowed_file(filename):
+# I only wanted image uploads here
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # Por fin arreglé lo del MIME, casi me rindo
@@ -262,11 +239,13 @@ def validate_image_mime(file):
 
 @app.route('/')
 def index():
+# Logged users go to dashboard
     if 'user_id' in session:
         return render_template('dashboard.html')
     return redirect(url_for('login'))
 
 @app.route('/register', methods=['GET', 'POST'])
+# Signup route
 def register():
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
@@ -299,15 +278,19 @@ def register():
     return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
+# Login route
 def login():
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '')
         
         try:
+# Simple password check (use hashing in production!)
             user_id = login_user(username, password)
             if user_id:
+# Reset old session data
                 session.clear()
+# Set session variable
                 session['user_id'] = user_id
                 session['username'] = username
                 return redirect(url_for('index'))
@@ -327,6 +310,7 @@ def logout():
 @app.route('/delete_account', methods=['POST'])
 @login_required
 def delete_account():
+# Delete user data + uploaded logos
     conn = get_db()
     cursor = conn.cursor()
     logos = [row[0] for row in cursor.execute("SELECT provider_logo FROM contracts WHERE user_id = ? AND provider_logo IS NOT NULL", (session['user_id'],)).fetchall()]
@@ -349,9 +333,12 @@ def delete_account():
 @login_required
 def new_contract():
     if request.method == 'POST':
+# Keep form checks here
+# This route gathers form data, validates it, and writes the final contract to SQLite.
         # Validaciones de integridad: Prestador no puede ser Cliente
         # Uff, por fin logré que esto funcione. Me costó horrores evitar que el prestador y el cliente sean la misma persona.
         # Al principio no lo validaba y generaba contratos raros. Espero que esto sea suficiente.
+# Avoid contracts where provider and client are literally the same person
         nombre_prestador = request.form.get('provider_name', '').strip().lower()
         nombre_cliente = request.form.get('client_name', '').strip().lower()
         telefono_prestador = request.form.get('provider_phone', '').strip()
@@ -367,6 +354,7 @@ def new_contract():
         
         # Determinar símbolo de moneda
         tipo_moneda = request.form.get('tipo_moneda', 'pesos')
+# Currency symbol for PDF
         simbolo_moneda = '$'
         
         if tipo_moneda == 'usd':
@@ -398,8 +386,12 @@ def new_contract():
         
         logo_filename = None
         if 'logo' in request.files:
+# Optional logo upload
             file = request.files['logo']
+# File extension alone is not enough
+# Check extension first
             if file and file.filename != '' and allowed_file(file.filename):
+# Check image header bytes
                 if validate_image_mime(file):
                     ext = file.filename.rsplit('.', 1)[1].lower()
                     logo_filename = f"logo_{session['user_id']}_{int(time.time())}.{ext}"
@@ -414,6 +406,7 @@ def new_contract():
                 flash(e, "error")
             return render_template('form.html', form_data=request.form.to_dict(flat=True))
 
+# Custom service name
         if request.form.get('service_type') == 'Otros':
             service_title = request.form.get('service_title_custom', '').strip()
         else:
@@ -425,6 +418,7 @@ def new_contract():
 
         payment_structure = request.form.get('payment_structure')
         try:
+# HTML forms send strings
             total = float(request.form.get('total_amount') or 0)
         except (ValueError, TypeError):
             total = 0.0
@@ -433,12 +427,15 @@ def new_contract():
         remaining = 0.0
         if payment_structure == 'advance':
             try:
+# Forms send numbers as text
                 advance = float(request.form.get('advance_amount') or 0)
             except (ValueError, TypeError):
                 advance = 0.0
+# Calculate remaining payment automatically
             remaining = total - advance
 
         penalty = 0.0
+# Only apply discount if provided
         if request.form.get('apply_penalty') == '1' and request.form.get('payment_timing') == 'after':
             try:
                 penalty = float(request.form.get('penalty_rate') or 0)
@@ -450,6 +447,7 @@ def new_contract():
         try:
             # Mañana reviso si los INSERT coinciden bien con las columnas
             cursor.execute('''
+# Save to DB
                 INSERT INTO contracts (
                     user_id, city_location, provider_name, provider_phone, provider_logo,
                     client_name, client_phone, service_type, service_title, service_desc,
