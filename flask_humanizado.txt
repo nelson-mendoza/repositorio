@@ -2531,12 +2531,12 @@ body {
     .signatures-section {
         page-break-inside: avoid;
         break-inside: avoid;
-        margin-top: 150mm;
+        margin-top: 1rem;
         padding-top: 1rem;
         display: block;
     }
     .signatures-section::after {
-        content: "";
+        content: "";1rem
         display: table;
         clear: both;
     }
