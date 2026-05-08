@@ -1,17 +1,8 @@
 ```
-# Logs and temp files
-*.log
-*.tmp
-*.swp
-
-# Environment
+# Environment variables
 .env
 .env.local
-*.env.*
-
-# Editors
-.vscode/
-.idea/
+.env.*
 
 # Python
 __pycache__/
@@ -19,24 +10,31 @@ __pycache__/
 *.pyo
 *.pyd
 .Python
-*.so
-.coverage
-htmlcov/
-.coverage.*
-.pytest_cache/
-.mypy_cache/
-
-# Dependencies
+env/
 venv/
 .venv/
-.env/
 pip-log.txt
-pip-selfcheck.json
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.git/refs/replace/
 
-# Build artifacts
-build/
-dist/
-*.egg-info/
+# Flask
+instance/
+.webassets-cache
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
 
 # OS generated files
 .DS_Store
@@ -46,13 +44,4 @@ dist/
 .Trashes
 ehthumbs.db
 Thumbs.db
-
-# Backup files
-*~
-*.bak
-*.swp
-*.swo
-
-# Original rules preserved
-*.log
 ```

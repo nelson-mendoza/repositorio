@@ -2527,12 +2527,12 @@ body {
         padding: 0;
     }
     
-    /* Forzar salto de página antes de las firmas y dar espacio */
+    /* Espacio antes de las firmas (sin salto de página) */
     .signatures-section {
         page-break-inside: avoid;
         break-inside: avoid;
-        margin-top: 5rem;
-        padding-top: 2rem;
+        margin-top: 2rem;
+        padding-top: 1rem;
         display: block;
         clear: both;
     }
@@ -2549,7 +2549,18 @@ body {
         width: 30%;
         text-align: center;
         margin-right: 1.5%;
+        margin-bottom: 1rem;
         vertical-align: top;
+    }
+    .sig-box .sig-line {
+        border-bottom: 1px solid #000;
+        height: 1px;
+        margin: 2rem auto 1.5rem auto;
+    }
+    .sig-box p {
+        margin-top: 0.3rem;
+        margin-bottom: 0.2rem;
+        font-size: 0.85rem;
     }
     .sig-box:last-child {
         margin-right: 0;
