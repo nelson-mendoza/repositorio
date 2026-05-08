@@ -554,6 +554,11 @@ def descargar_pdf(contract_id):
     contract_data = dict(contract)
     
     try:
+        # Leer el archivo CSS para inyectarlo en el HTML
+        css_path = os.path.join(os.path.dirname(__file__), 'static', 'style.css')
+        with open(css_path, 'r', encoding='utf-8') as f:
+            css_content = f.read()
+        
         # Construir URL absoluta para el logo si existe (para pdfkit)
         logo_url = ''
         if contract_data.get('provider_logo'):
@@ -562,21 +567,38 @@ def descargar_pdf(contract_id):
         # Renderizar el template HTML con los datos del contrato
         html = render_template('pdf_view.html', contract=contract_data, logo_url=logo_url)
         
-        # Configurar opciones de pdfkit para A4 con márgenes de 20mm
+        # Inyectar el CSS dentro del HTML antes de convertir a PDF
+        html_with_css = f"""
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                {css_content}
+            </style>
+        </head>
+        <body>
+            {html}
+        </body>
+        </html>
+        """
+        
+        # Configurar opciones de pdfkit para A4 con márgenes reducidos para que quepa en 1 hoja
         options = {
             'page-size': 'A4',
-            'margin-top': '20mm',
-            'margin-right': '20mm',
-            'margin-bottom': '20mm',
-            'margin-left': '20mm',
+            'margin-top': '15mm',
+            'margin-right': '15mm',
+            'margin-bottom': '15mm',
+            'margin-left': '15mm',
             'encoding': 'UTF-8',
             'enable-local-file-access': None,
             'no-outline': None,
-            'quiet': ''
+            'quiet': '',
+            'print-media-type': ''
         }
         
         # Generar PDF desde HTML
-        pdf = pdfkit.from_string(html, False, options=options)
+        pdf = pdfkit.from_string(html_with_css, False, options=options)
         
         pdf_buffer = io.BytesIO(pdf)
         
@@ -2474,7 +2496,7 @@ body {
     
     .paper-sheet {
         box-shadow: none;
-        padding: 20mm;
+        padding: 10mm 15mm;
         max-width: 100%;
         background: #ffffff;
     }
@@ -2485,8 +2507,7 @@ body {
     
     /* Forzar salto de página antes de las firmas y centrar contenido en nueva hoja */
     .signatures-section {
-        page-break-before: always;
-        break-before: page;
+        page-break-inside: avoid;
         margin-top: 3rem;
         padding-top: 3rem;
     }
