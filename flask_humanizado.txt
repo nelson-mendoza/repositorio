@@ -586,10 +586,10 @@ def descargar_pdf(contract_id):
         # Configurar opciones de pdfkit para A4 con márgenes reducidos para que quepa en 1 hoja
         options = {
             'page-size': 'A4',
-            'margin-top': '15mm',
-            'margin-right': '15mm',
-            'margin-bottom': '15mm',
-            'margin-left': '15mm',
+            'margin-top': '10mm',
+            'margin-right': '10mm',
+            'margin-bottom': '10mm',
+            'margin-left': '10mm',
             'encoding': 'UTF-8',
             'enable-local-file-access': None,
             'no-outline': None,
@@ -2496,7 +2496,7 @@ body {
     
     .paper-sheet {
         box-shadow: none;
-        padding: 10mm 15mm;
+        padding: 5mm 8mm;
         max-width: 100%;
         background: #ffffff;
     }
@@ -2508,8 +2508,18 @@ body {
     /* Forzar salto de página antes de las firmas y centrar contenido en nueva hoja */
     .signatures-section {
         page-break-inside: avoid;
-        margin-top: 3rem;
-        padding-top: 3rem;
+        break-inside: avoid;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        gap: 20px;
+    }
+    .signature-box {
+        page-break-inside: avoid;
+        break-inside: avoid;
+        width: 45%;
     }
     
     .pdf-header {
