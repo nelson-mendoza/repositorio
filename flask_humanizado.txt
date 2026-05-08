@@ -607,7 +607,7 @@ cat > templates/base.html << 'EOF'
 </head>
 <body>
     {% if session.user_id %}
-    <nav class="navbar no-print">
+    <nav class="navbar">
         <div class="nav-brand">
             <i class="fas fa-file-contract"></i>
             <span>ContratoExpress</span>
@@ -1135,7 +1135,7 @@ cat > templates/pdf_view.html << 'EOF'
 {% extends "base.html" %}
 {% block title %}Ver Contrato - ContratoExpress{% endblock %}
 {% block content %}
-<div class="pdf-toolbar no-print">
+<div class="pdf-toolbar">
     <a href="{{ url_for('history') }}" class="btn-secondary">
         <i class="fas fa-arrow-left"></i> Volver
     </a>
@@ -1154,7 +1154,7 @@ cat > templates/pdf_view.html << 'EOF'
     <div class="pdf-header">
         <div class="header-left">
             {% if logo_url %}
-                <img src="{{ logo_url }}" class="company-logo" style="max-width: 150px; max-height: 80px; width: auto; height: auto;" crossorigin="anonymous">
+                <img src="{{ logo_url }}" class="company-logo" crossorigin="anonymous">
             {% else %}
                 <div class="logo-placeholder">
                     <i class="fas fa-file-contract"></i>
@@ -2383,7 +2383,7 @@ body {
 
 .signatures-section {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 1.5rem;
     margin-top: 3rem;
     padding-top: 1.5rem;
@@ -2419,10 +2419,6 @@ body {
     color: #888888;
     font-size: 8pt;
     font-style: italic;
-}
-
-.no-print {
-    display: none !important;
 }
 
 @media (max-width: 768px) {
@@ -2467,7 +2463,7 @@ body {
 }
 
 @media print {
-    .navbar, .pdf-toolbar, .no-print, button, a {
+    .navbar, .pdf-toolbar, button, a {
         display: none !important;
     }
     
