@@ -2527,13 +2527,13 @@ body {
         padding: 0;
     }
     
-    /* Forzar salto de página antes de las firmas y centrar contenido en nueva hoja */
+    /* Empujar las firmas casi al final de la hoja dejando espacio vacío */
     .signatures-section {
         page-break-inside: avoid;
         break-inside: avoid;
-        margin-top: 150mm;
-        padding-top: 1rem;
-        display: block;
+        margin-top: 80mm; /* Espacio moderado entre última cláusula y firmas */
+        padding-top: 1.5rem;
+        border-top: 1px solid #cccccc;
     }
     .signatures-section::after {
         content: "";
