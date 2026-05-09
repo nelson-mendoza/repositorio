@@ -78,7 +78,7 @@ def validate_contract(data):
         errors.append("La descripción del servicio es muy corta.")
     email = data.get('email_client', '')
     if email and not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
-        errors.append("Email del cliente inválido.")
+        errors.append("Correo electrónico del cliente inválido.")
     try:
         total = float(data.get('total_amount', 0))
         if total <= 0:
@@ -102,7 +102,7 @@ def validate_contract(data):
         errors.append("Formato de fecha inválido.")
     if data.get('has_materials') == 'on' and not data.get('materials_details'):
         errors.append("Detalles de materiales requeridos cuando se incluyen materiales.")
-    if data.get('payment_method') == 'transfer' and not data.get('bank_details'):
+    if data.get('pago_metodo') == 'transfer' and not data.get('bank_details'):
         errors.append("Datos bancarios requeridos para pago por transferencia.")
     if data.get('include_signatures') == 'on':
         if not data.get('sig_provider_name', '').strip():
@@ -117,13 +117,13 @@ def register_user(username, password):
     existing = cursor.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
     if existing:
         conn.close()
-        return False, "Username already exists."
+        return False, "El nombre de usuario ya existe."
     password_hash = generate_password_hash(password)
     try:
         cursor.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", (username, password_hash))
         conn.commit()
         conn.close()
-        return True, "User created successfully."
+        return True, "Usuario creado exitosamente."
     except Exception as e:
         conn.close()
         return False, str(e)
@@ -263,18 +263,18 @@ def register():
             flash("Contraseña muy débil (mínimo 6 caracteres).", "error")
             return redirect(url_for('register'))
         if password != confirm:
-            flash("Passwords do not match.", "error")
+            flash("Las contraseñas no coinciden.", "error")
             return redirect(url_for('register'))
         
         try:
             success, msg = register_user(username, password)
             if success:
-                flash("Account created. Please log in.", "success")
+                flash("Cuenta creada. Por favor inicia sesión.", "success")
                 return redirect(url_for('login'))
             else:
                 flash(msg, "error")
         except Exception as e:
-            flash("Internal error during registration.", "error")
+            flash("Error interno durante el registro.", "error")
             app.logger.error(f"Register error: {e}")
         
         return redirect(url_for('register'))
@@ -297,7 +297,7 @@ def login():
             else:
                 flash("Credenciales inválidas.", "error")
         except Exception as e:
-            flash("Internal error during login.", "error")
+            flash("Error interno durante el inicio de sesión.", "error")
             app.logger.error(f"Login error: {e}")
     
     return render_template('login.html')
@@ -325,7 +325,7 @@ def delete_account():
             except OSError:
                 pass
     session.clear()
-    flash("Account deleted.", "warning")
+    flash("Cuenta eliminada.", "warning")
     return redirect(url_for('register'))
 
 @app.route('/new_contract', methods=['GET', 'POST'])
@@ -385,9 +385,9 @@ def new_contract():
                     logo_filename = f"logo_{session['user_id']}_{int(time.time())}.{ext}"
                     file.save(os.path.join(app.config['UPLOAD_FOLDER'], logo_filename))
                 else:
-                    errors.append("File is not a valid image.")
+                    errors.append("El archivo no es una imagen válida.")
             elif file and file.filename != '':
-                errors.append("Only PNG and JPG files allowed.")
+                errors.append("Solo se permiten archivos PNG y JPG.")
 
         if errors:
             for e in errors:
@@ -421,7 +421,7 @@ def new_contract():
         penalty = 0.0
         if request.form.get('apply_penalty') == '1' and request.form.get('payment_timing') == 'after':
             try:
-                penalty = float(request.form.get('penalty_rate') or 0)
+                penalty = float(request.form.get('multa') or 0)
             except (ValueError, TypeError):
                 penalty = 0.0
 
@@ -443,11 +443,11 @@ def new_contract():
                 session['user_id'], request.form.get('city_location'),
                 request.form.get('provider_name'), request.form.get('provider_phone'), logo_filename,
                 request.form.get('client_name'), request.form.get('client_phone'),
-                request.form.get('service_type'), service_title, request.form.get('service_desc'),
+                request.form.get('service_type'), service_title, request.form.get('desc_servicio'),
                 1 if request.form.get('has_materials') else 0, request.form.get('materials_details'),
                 1 if request.form.get('is_quote_pending') else 0,
                 payment_structure, request.form.get('payment_timing'), total, advance, remaining,
-                request.form.get('payment_method'), request.form.get('bank_details'),
+                request.form.get('pago_metodo'), request.form.get('bank_details'),
                 request.form.get('crypto_wallet'), request.form.get('other_method'),
                 request.form.get('deadline'), penalty,
                 request.form.get('rfc_provider'), request.form.get('rfc_client'),
@@ -461,12 +461,12 @@ def new_contract():
             conn.commit()
             contract_id = cursor.lastrowid
             conn.close()
-            flash("Contract generated successfully.", "success")
+            flash("Contrato generado exitosamente.", "success")
             return redirect(url_for('view_contract', contract_id=contract_id))
         except Exception as e:
             conn.close()
             app.logger.error(f"Error saving contract: {e}")
-            flash("Internal error while saving. Please try again.", "error")
+            flash("Error interno al guardar. Intente nuevamente.", "error")
             return render_template('form.html', form_data=request.form.to_dict(flat=True))
     
     return render_template('form.html', form_data=None)
@@ -486,7 +486,7 @@ def view_contract(contract_id):
     contract = conn.execute("SELECT * FROM contracts WHERE id = ? AND user_id = ?", (contract_id, session['user_id'])).fetchone()
     conn.close()
     if not contract:
-        flash("Contract not found.", "error")
+        flash("Contrato no encontrado.", "error")
         return redirect(url_for('history'))
     # For web view use url_for instead of file://
     logo_url = ''
@@ -509,7 +509,7 @@ def delete_contract(contract_id):
                     pass
         conn.execute("DELETE FROM contracts WHERE id = ?", (contract_id,))
         conn.commit()
-        flash("Contract deleted.", "warning")
+        flash("Contrato eliminado.", "warning")
     conn.close()
     return redirect(url_for('history'))
 
@@ -528,7 +528,7 @@ def descargar_pdf(contract_id):
     conn.close()
     
     if not contract:
-        flash("Contract not found.", "error")
+        flash("Contrato no encontrado.", "error")
         return redirect(url_for('history'))
     
     contract_data = dict(contract)
@@ -585,7 +585,7 @@ def descargar_pdf(contract_id):
         )
     except Exception as e:
         app.logger.error(f"Error generating PDF: {e}")
-        flash("Error generating PDF. Please try again.", "error")
+        flash("Error al generar PDF. Intente nuevamente.", "error")
         return redirect(url_for('view_contract', contract_id=contract_id))
 EOF
 
@@ -954,7 +954,7 @@ cat > templates/form.html << 'EOF'
             </div>
             <div class="form-group">
                 <label for="service_desc">Descripción Detallada</label>
-                <textarea id="service_desc" name="service_desc" rows="4" placeholder="Describe exactamente qué servicios realizarás..." required>{{ form_data.get('service_desc', '') if form_data else '' }}</textarea>
+                <textarea id="desc_servicio" name="desc_servicio" rows="4" placeholder="Describe exactamente qué servicios realizarás..." required>{{ form_data.get('service_desc', '') if form_data else '' }}</textarea>
             </div>
             <div class="checkbox-group">
                 <label class="checkbox-label">
@@ -1029,20 +1029,20 @@ cat > templates/form.html << 'EOF'
             </div>
             <div class="form-group">
                 <label for="payMethod">Método de Pago</label>
-                <select id="payMethod" name="payment_method" onchange="togglePaymentDetails()">
-                    <option value="cash" {{ 'selected' if form_data and form_data.get('payment_method') == 'cash' else '' }}>Efectivo</option>
-                    <option value="transfer" {{ 'selected' if form_data and form_data.get('payment_method') == 'transfer' else '' }}>Transferencia Bancaria</option>
-                    <option value="crypto" {{ 'selected' if form_data and form_data.get('payment_method') == 'crypto' else '' }}>Criptomoneda</option>
-                    <option value="other" {{ 'selected' if form_data and form_data.get('payment_method') == 'other' else '' }}>Otro</option>
+                <select id="payMethod" data-name="pago_metodo" name="pago_metodo" onchange="togglePaymentDetails()">
+                    <option value="cash" {{ 'selected' if form_data and form_data.get('pago_metodo') == 'cash' else '' }}>Efectivo</option>
+                    <option value="transfer" {{ 'selected' if form_data and form_data.get('pago_metodo') == 'transfer' else '' }}>Transferencia Bancaria</option>
+                    <option value="crypto" {{ 'selected' if form_data and form_data.get('pago_metodo') == 'crypto' else '' }}>Criptomoneda</option>
+                    <option value="other" {{ 'selected' if form_data and form_data.get('pago_metodo') == 'other' else '' }}>Otro</option>
                 </select>
             </div>
-            <div id="bankDetails" class="payment-detail" style="display: {{ 'none' if not form_data or form_data.get('payment_method') != 'transfer' else 'block' }}">
+            <div id="bankDetails" class="payment-detail" style="display: {{ 'none' if not form_data or form_data.get('pago_metodo') != 'transfer' else 'block' }}">
                 <input type="text" name="bank_details" value="{{ form_data.get('bank_details', '') if form_data else '' }}" placeholder="Banco y CLABE/Account">
             </div>
-            <div id="cryptoDetails" class="payment-detail" style="display: {{ 'none' if not form_data or form_data.get('payment_method') != 'crypto' else 'block' }}">
+            <div id="cryptoDetails" class="payment-detail" style="display: {{ 'none' if not form_data or form_data.get('pago_metodo') != 'crypto' else 'block' }}">
                 <input type="text" name="crypto_wallet" value="{{ form_data.get('crypto_wallet', '') if form_data else '' }}" placeholder="Dirección de Wallet">
             </div>
-            <div id="otherDetails" class="payment-detail" style="display: {{ 'none' if not form_data or form_data.get('payment_method') != 'other' else 'block' }}">
+            <div id="otherDetails" class="payment-detail" style="display: {{ 'none' if not form_data or form_data.get('pago_metodo') != 'other' else 'block' }}">
                 <input type="text" name="other_method" value="{{ form_data.get('other_method', '') if form_data else '' }}" placeholder="Detalles del método de pago">
             </div>
             <div class="form-group">
@@ -1055,7 +1055,7 @@ cat > templates/form.html << 'EOF'
                     <span>Aplicar penalización por retraso en pago</span>
                 </label>
                 <div id="penaltyInput" style="display: {{ 'none' if not form_data or form_data.get('apply_penalty') != '1' else 'block' }}">
-                    <input type="number" name="penalty_rate" step="0.1" value="{{ form_data.get('penalty_rate', '5.0') if form_data else '5.0' }}" placeholder="% diario">
+                    <input type="number" name="multa" step="0.1" value="{{ form_data.get('penalty_rate', '5.0') if form_data else '5.0' }}" placeholder="% diario">
                 </div>
             </div>
         </div>
@@ -2752,12 +2752,14 @@ document.getElementById('contractForm').addEventListener('submit', function(e) {
     }
 });
 
-setTimeout(function() {
+// setTimeout desactivado - alertas estáticas para que el usuario las cierre manualmente
+//     // setTimeout(function() {
     const alerts = document.querySelectorAll('.alert');
     alerts.forEach(function(alert) {
         alert.style.transition = 'opacity 0.5s';
-        alert.style.opacity = '0';
-        setTimeout(function() {
+        // alert.style.opacity = '0';
+        // setTimeout desactivado - alertas estáticas para que el usuario las cierre manualmente
+//     // setTimeout(function() {
             alert.remove();
         }, 500);
     });
