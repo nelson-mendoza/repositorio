@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presentación Profesional - ContratoExpress</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&family=JetBrains+Mono&display=swap');
+
+        :root {
+            --primary: #0f172a;
+            --accent: #3b82f6;
+            --text-main: #1e293b;
+            --text-light: #64748b;
+            --bg-slide: #ffffff;
+            --bg-terminal: #1e1e1e;
+        }
+
+        body, html {
+            margin: 0; padding: 0;
+            background-color: #000;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            color: var(--text-main);
+        }
+
+        /* Lienzo 16:9 */
+        .ppt-wrapper {
+            width: 100vw; height: 56.25vw; /* 16:9 ratio */
+            max-width: 177.78vh; max-height: 100vh;
+            margin: auto;
+            position: absolute;
+            top: 0; bottom: 0; left: 0; right: 0;
+            background: var(--bg-slide);
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+        }
+
+        .slide {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: none;
+            padding: 5% 8%;
+            box-sizing: border-box;
+            flex-direction: column;
+        }
+
+        .slide.active { display: flex; animation: slideFade 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+
+        @keyframes slideFade {
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* --- Estilos de Portada --- */
+        .slide-title {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: white;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .slide-title h1 { font-size: 5.5rem; font-weight: 800; margin: 0; letter-spacing: -2px; }
+        .slide-title h2 { color: var(--accent); font-size: 2rem; font-weight: 400; margin-bottom: 3rem; }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            text-align: left;
+            background: rgba(255,255,255,0.05);
+            padding: 30px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .info-grid p { margin: 5px 0; font-size: 1.2rem; }
+        .info-grid strong { color: var(--accent); margin-right: 10px; }
+
+        /* --- Estilos Diapositivas de Contenido --- */
+        .slide-header {
+            border-bottom: 2px solid #f1f5f9;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+        }
+
+        .slide-header h2 { font-size: 3.5rem; margin: 0; font-weight: 800; color: var(--primary); }
+
+        .content { display: flex; gap: 40px; align-items: start; }
+        .content-text { flex: 1; font-size: 1.6rem; line-height: 1.5; }
+        
+        ul { list-style: none; padding: 0; }
+        li { margin-bottom: 25px; padding-left: 40px; position: relative; }
+        li::before { 
+            content: ""; position: absolute; left: 0; top: 12px;
+            width: 12px; height: 12px; background: var(--accent); border-radius: 3px;
+        }
+
+        /* --- Estilo de Árbol de Archivos (Tree) --- */
+        .tree-container {
+            background: var(--bg-terminal);
+            color: #d1d5db;
+            padding: 30px;
+            border-radius: 15px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.1rem;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            flex: 1;
+        }
+
+        /* --- Estilo de Campos de App --- */
+        .fields-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-top: 20px;
+        }
+
+        .field-card {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 5px solid var(--accent);
+        }
+
+        .field-card h3 { margin: 0 0 10px 0; font-size: 1.3rem; color: var(--primary); }
+        .field-card p { margin: 0; font-size: 1.1rem; color: var(--text-light); }
+
+        /* Footer */
+        .slide-footer {
+            position: absolute; bottom: 40px; left: 8%; right: 8%;
+            display: flex; justify-content: space-between;
+            font-size: 0.9rem; color: var(--text-light);
+            border-top: 1px solid #f1f5f9; padding-top: 20px;
+        }
+
+        /* Controles */
+        .nav-hints {
+            position: fixed; bottom: 20px; right: 20px;
+            background: rgba(0,0,0,0.7); color: white;
+            padding: 10px 20px; border-radius: 30px; font-size: 0.8rem;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="nav-hints">Usa ⬅️ ➡️ para navegar</div>
+
+    <div class="ppt-wrapper">
+        
+        <div class="slide slide-title active">
+            <h1>ContratoExpress</h1>
+            <h2>Simplificando la formalidad laboral</h2>
+            <div class="info-grid">
+                <div>
+                    <p><strong>Presentado por:</strong> [TU NOMBRE]</p>
+                    <p><strong>GitHub:</strong> [TU USUARIO]</p>
+                </div>
+                <div>
+                    <p><strong>Ubicación:</strong> Cacahoatán, Chiapas</p>
+                    <p><strong>Fecha:</strong> Mayo 2026</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="slide-header"><h2>Estructura del Sistema</h2></div>
+            <div class="content">
+                <div class="content-text">
+                    <p>Arquitectura MVC organizada para escalabilidad y orden:</p>
+                    <ul>
+                        <li><strong>Backend:</strong> Lógica central en `app.py` y validaciones en `rules.py`.</li>
+                        <li><strong>Frontend:</strong> 7 plantillas Jinja2 para una experiencia de usuario fluida.</li>
+                        <li><strong>Assets:</strong> Estilos y validaciones dinámicas en carpeta `static`.</li>
+                    </ul>
+                </div>
+                <div class="tree-container">
+<pre>
+ContratoExpress/
+├── app.py           # Núcleo Flask
+├── rules.py         # DB y Reglas
+├── static/
+│   ├── script.js    # UI Interactiva
+│   └── style.css    # Diseño App
+├── templates/       # 7 Vistas HTML
+├── uploads/         # Logos guardados
+└── wkhtmltopdf...deb # Motor PDF
+</pre>
+                </div>
+            </div>
+            <div class="slide-footer"><span>Estructura de Archivos</span><span>Slide 2</span></div>
+        </div>
+
+        <div class="slide slide-title">
+            <h1 style="font-size: 4rem;">Demostración del Software</h1>
+            <p style="font-size: 1.5rem; opacity: 0.8;">A continuación veremos la aplicación funcionando en tiempo real...</p>
+        </div>
+
+        <div class="slide">
+            <div class="slide-header"><h2>Campos del Contrato</h2></div>
+            <div class="content-text">
+                <p>El formulario captura la esencia legal de un acuerdo en 4 pilares:</p>
+                <div class="fields-grid">
+                    <div class="field-card">
+                        <h3>Identidad</h3>
+                        <p>Nombre del prestador (trabajador) y del cliente contratante.</p>
+                    </div>
+                    <div class="field-card">
+                        <h3>El Servicio</h3>
+                        <p>Descripción detallada de la tarea y ubicación exacta del trabajo.</p>
+                    </div>
+                    <div class="field-card">
+                        <h3>Acuerdo Económico</h3>
+                        <p>Monto total y cláusula de penalización por incumplimiento.</p>
+                    </div>
+                    <div class="field-card">
+                        <h3>Personalización</h3>
+                        <p>Subida de logotipo para un acabado profesional en el PDF.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-footer"><span>Detalles del Formulario</span><span>Slide 4</span></div>
+        </div>
+
+        <div class="slide">
+            <div class="slide-header"><h2>Reflexión Final</h2></div>
+            <div class="content-text">
+                <ul>
+                    <li><strong>Impacto Social:</strong> Una herramienta real para la justicia económica en Chiapas.</li>
+                    <li><strong>Reto Técnico:</strong> Dominar la generación de PDFs con soporte UTF-8 y manejo de archivos.</li>
+                    <li><strong>Aprendizaje:</strong> CS50 me enseñó que el software útil no requiere complejidad innecesaria.</li>
+                </ul>
+                <div style="margin-top: 50px; text-align: center; font-weight: 800; font-size: 2rem; color: var(--accent);">
+                    "This was ContratoExpress, and this was CS50."
+                </div>
+            </div>
+            <div class="slide-footer"><span>Conclusión</span><span>Slide 5</span></div>
+        </div>
+
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+
+        function showSlide(n) {
+            slides[currentSlide].classList.remove('active');
+            currentSlide = (n + slides.length) % slides.length;
+            slides[currentSlide].classList.add('active');
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') showSlide(currentSlide + 1);
+            if (e.key === 'ArrowLeft') showSlide(currentSlide - 1);
+        });
+    </script>
+</body>
+</html>
