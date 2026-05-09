@@ -2752,37 +2752,3 @@ document.getElementById('contractForm').addEventListener('submit', function(e) {
     }
 });
 
-// setTimeout desactivado - alertas estáticas para que el usuario las cierre manualmente
-// El siguiente código está comentado intencionalmente:
-EOF
-
-echo ""
-echo "✅ ContratoExpress v3.3 COMPLETO"
-echo ""
-echo "📁 Archivos creados:"
-echo "   ✓ app.py"
-echo "   ✓ rules.py"
-echo "   ✓ templates/base.html"
-echo "   ✓ templates/login.html"
-echo "   ✓ templates/register.html"
-echo "   ✓ templates/dashboard.html"
-echo "   ✓ templates/form.html"
-echo "   ✓ templates/pdf_view.html"
-echo "   ✓ templates/history.html"
-echo "   ✓ static/style.css"
-echo "   ✓ static/script.js"
-echo ""
-echo "🚀 Para ejecutar:"
-echo "   cd ContratoExpress"
-echo "   rm -f contracts.db"
-echo "   pip install -r requirements.txt"
-echo "   # Instalar wkhtmltopdf (necesario para pdfkit):"
-echo "   # En Ubuntu/Debian: sudo apt-get install wkhtmltopdf"
-echo "   # En macOS: brew install wkhtmltopdf"
-echo "   # En Windows: descargar de https://wkhtmltopdf.org/downloads.html"
-echo "   export FLASK_APP=app.py"
-echo "   export SECRET_KEY='your-secret-key'"
-echo "   flask run --host=0.0.0.0"
-echo ""
-echo "Project setup complete. Ready for deployment."
-echo ""
