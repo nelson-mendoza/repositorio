@@ -49,13 +49,42 @@ def validate_contract(data):
         errors.append("Client name too short.")
     if len(data.get('city_location', '')) < 3:
         errors.append("City of issuance required.")
-# Clean phone input before validation
-    phone_p = data.get('provider_phone', '').replace(" ", "").replace("-", "")
-    phone_c = data.get('client_phone', '').replace(" ", "").replace("-", "")
-    if not phone_p.isdigit() or len(phone_p) < 7:
-        errors.append("Provider phone invalid (minimum 7 digits).")
-    if not phone_c.isdigit() or len(phone_c) < 7:
-        errors.append("Client phone invalid (minimum 7 digits).")
+# Clean phone input before validation (keep only digits and leading +)
+    def clean_phone(phone):
+        phone = phone.strip()
+        # Check if starts with +
+        has_plus = phone.startswith('+')
+        # Remove all non-digit characters except +
+        cleaned = re.sub(r'[^\d]', '', phone)
+        # Add back the + if it was present
+        if has_plus and not cleaned.startswith('+'):
+            cleaned = '+' + cleaned
+        return cleaned
+    
+    phone_p = clean_phone(data.get('provider_phone', ''))
+    phone_c = clean_phone(data.get('client_phone', ''))
+    
+    # Validate phone: allow + at start, then digits only
+    # Minimum 7 digits (excluding +), maximum 15 digits (international standard)
+    def is_valid_phone(phone):
+        if not phone:
+            return False
+        # Remove + for digit count
+        digits_only = phone.replace('+', '')
+        if not digits_only.isdigit():
+            return False
+        digit_count = len(digits_only)
+        if digit_count < 7 or digit_count > 15:
+            return False
+        # If has +, it must be at the start
+        if '+' in phone and not phone.startswith('+'):
+            return False
+        return True
+    
+    if not is_valid_phone(phone_p):
+        errors.append("Provider phone invalid (7-15 digits, optional + prefix).")
+    if not is_valid_phone(phone_c):
+        errors.append("Client phone invalid (7-15 digits, optional + prefix).")
     if len(data.get('service_desc', '')) < 5:
         errors.append("Service description too short.")
     email = data.get('email_client', '')
@@ -934,7 +963,7 @@ cat > templates/form.html << 'EOF'
                 </div>
                 <div class="form-group">
                     <label for="provider_phone">Teléfono</label>
-                    <input type="text" id="provider_phone" name="provider_phone" value="{{ form_data.get('provider_phone', '') if form_data else '' }}" placeholder="Mínimo 7 dígitos" pattern="[0-9]{7,}" required>
+                    <input type="text" id="provider_phone" name="provider_phone" value="{{ form_data.get('provider_phone', '') if form_data else '' }}" placeholder="+1 (105) 538-5121 o 9637400065" required>
                 </div>
             </div>
             <div class="form-row grid-2">
@@ -944,7 +973,7 @@ cat > templates/form.html << 'EOF'
                 </div>
                 <div class="form-group">
                     <label for="client_phone">Teléfono del Cliente</label>
-                    <input type="text" id="client_phone" name="client_phone" value="{{ form_data.get('client_phone', '') if form_data else '' }}" placeholder="Mínimo 7 dígitos" pattern="[0-9]{7,}" required>
+                    <input type="text" id="client_phone" name="client_phone" value="{{ form_data.get('client_phone', '') if form_data else '' }}" placeholder="+1 (105) 538-5121 o 9637400065" required>
                 </div>
             </div>
             <div class="form-group">
