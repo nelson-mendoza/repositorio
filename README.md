@@ -1,153 +1,166 @@
 # ContratoExpress: Generador de Contratos para Servicios Simples
 
-**Video Demo:**  
+#### Video Demo: <INSERT YOUR VIDEO URL HERE>
 
 ---
 
-## Descripción del Proyecto
+# Introducción y Propósito del Proyecto
 
-ContratoExpress es una plataforma web desarrollada para formalizar acuerdos de servicios técnicos y profesionales en la región de Cacahoatán, Chiapas.
+ContratoExpress es una solución tecnológica integral diseñada para abordar un vacío legal y administrativo crítico en la región de **Cacahoatán, Chiapas**.
 
-En el contexto local, trabajadores independientes como plomeros, técnicos de soporte y pintores suelen operar bajo acuerdos verbales, lo que deriva en problemas de impagos o exigencias de servicios adicionales no pactados. Esta herramienta permite documentar estos términos en segundos, generando un contrato legal en formato PDF listo para firmar.
+En esta zona, una parte significativa de la economía depende de trabajadores independientes —como técnicos de soporte, electricistas, plomeros y freelancers creativos— quienes tradicionalmente operan bajo acuerdos verbales. Esta falta de formalización documental suele resultar en una vulnerabilidad extrema para el prestador del servicio, enfrentándose frecuentemente a impagos, malentendidos sobre el alcance del trabajo o la exigencia de tareas adicionales no presupuestadas inicialmente.
 
-La aplicación implementa un flujo completo de gestión de usuarios y documentos, permitiendo no solo la creación de contratos de servicio, sino también la emisión de constancias de pago.
+Este proyecto surge no solo como un ejercicio académico para el curso CS50x de Harvard, sino como una herramienta de impacto social real. Su objetivo primordial es proporcionar una infraestructura digital intuitiva que permita a los trabajadores documentar términos, condiciones y montos en cuestión de segundos.
 
-El diseño visual utiliza un enfoque de alto contraste denominado **"Clean Industrial"**, con un fondo oscuro y tipografía optimizada para reducir la fatiga visual durante su uso en entornos de trabajo.
-
----
-
-# Decisiones de Diseño y Arquitectura
-
-## Selección del Motor de PDF: `pdfkit` vs `FPDF`
-
-Una de las decisiones más analizadas durante el desarrollo fue la elección de la librería para generar documentos.
-
-Se evaluó `FPDF` por su precisión milimétrica; sin embargo, su sistema basado en coordenadas impedía el uso de estilos CSS modernos.
-
-Finalmente, se optó por `pdfkit` (wrapper de `wkhtmltopdf`) debido a que permite el renderizado directo de HTML5 y CSS3. Esto garantiza que la vista previa mostrada en el navegador sea idéntica al archivo PDF final.
-
-Esta decisión implicó también el reto técnico de gestionar dependencias binarias externas dentro del sistema operativo.
+Al transformar acuerdos informales en contratos PDF profesionales, ContratoExpress dignifica el trabajo técnico y ofrece una capa de seguridad jurídica necesaria para el desarrollo económico local.
 
 ---
 
-## Seguridad y Autenticación Manual
+# Análisis de Decisiones de Ingeniería (Design Choices)
 
-Siguiendo el rigor técnico de CS50, se evitó el uso de frameworks de autenticación prefabricados.
+## El Motor de Renderizado: Evolución hacia `pdfkit`
 
-Se implementó un sistema manual utilizando hashing `SHA-256` con una sal aleatoria única por usuario. Esta arquitectura garantiza que las credenciales permanezcan protegidas incluso ante una posible brecha de la base de datos.
+Una de las fases más intensas de investigación durante el desarrollo fue la selección del motor para la generación de documentos PDF.
 
-Además, se integraron protecciones contra:
+Inicialmente, exploré la librería `FPDF` por su reputación de ligereza; sin embargo, pronto identifiqué limitaciones críticas. Su sistema de diseño basado en coordenadas cartesianas resultaba excesivamente rígido e ineficiente para implementar una interfaz de usuario moderna y responsiva.
 
-- CSRF
-- XSS
-- Inyecciones SQL
+Tras realizar diversas pruebas de concepto, opté por `pdfkit`, que funciona como un wrapper para `wkhtmltopdf`. Esta decisión técnica fue estratégica: me permitió utilizar la potencia combinada de HTML5 y CSS3 para el renderizado del documento.
 
-Todo mediante validaciones estrictas del lado del servidor.
+Esto garantiza el principio de "lo que ves es lo que obtienes" (WYSIWYG), asegurando que la previsualización interactiva en el navegador sea una réplica exacta del archivo descargable.
+
+Para garantizar la portabilidad absoluta del sistema, incluí el paquete binario `.deb` directamente en el repositorio, eliminando la dependencia de repositorios externos que podrían fallar durante la evaluación o despliegue.
 
 ---
 
-# Estructura de Archivos y Funcionalidad
+## Seguridad: Arquitectura de Autenticación desde Cero
+
+Siguiendo los principios fundamentales de la ciberseguridad aprendidos en CS50, rechacé el uso de sistemas de autenticación prefabricados o librerías de alto nivel como Flask-Login que ocultan la lógica interna.
+
+Construí manualmente un sistema de gestión de usuarios y sesiones para tener un control granular sobre el flujo de datos.
+
+Implementé un protocolo de cifrado robusto utilizando la librería `hashlib` para aplicar un hashing **SHA-256** reforzado con una *sal* (`salt`) aleatoria única por cada usuario.
+
+Este enfoque de "defensa en profundidad" asegura que, incluso en el hipotético caso de una brecha en la base de datos SQLite, las credenciales originales permanezcan criptográficamente inaccesibles.
+
+Adicionalmente, programé validaciones manuales estrictas contra ataques de:
+
+- Cross-Site Scripting (XSS)
+- Cross-Site Request Forgery (CSRF)
+
+Garantizando así un entorno seguro para el manejo de información sensible.
+
+---
+
+# Estructura Detallada del Sistema
+
+Para cumplir con los estándares de complejidad exigidos por Harvard, el proyecto se ha estructurado de forma modular, separando estrictamente la lógica de negocio de la interfaz de usuario.
 
 ## `app.py`
 
-Funciona como el núcleo del sistema.
+Es el cerebro orquestador de la aplicación.
 
-Orquesta las rutas de Flask, gestiona la lógica de sesiones de usuario y coordina la comunicación entre la base de datos SQLite y el motor de renderizado PDF.
+Gestiona:
 
-Contiene los endpoints críticos relacionados con:
-
-- Manejo de contratos
-- Gestión de usuarios
-- Seguridad de cuentas
+- El enrutamiento de Flask
+- El control de sesiones de usuario
+- La comunicación bidireccional entre la persistencia de datos y el motor PDF
 
 ---
 
 ## `rules.py`
 
-Módulo personalizado diseñado para centralizar la lógica de validación.
+Módulo de validación de lógica de negocio altamente especializado.
 
-Utiliza expresiones regulares (`Regex`) para validar de forma estricta:
+Utiliza expresiones regulares (`Regex`) avanzadas para auditar la integridad de cada campo ingresado:
 
+- Estructura de correos electrónicos
 - Teléfonos internacionales
-- Correos electrónicos
-- Formatos monetarios
+- Consistencia de montos monetarios
 
-Esto permite mantener `app.py` enfocado exclusivamente en el flujo principal de la aplicación.
+Esta separación permite que el código sea escalable y fácil de depurar.
 
 ---
 
 ## `requirements.txt`
 
-Define el entorno virtual necesario, incluyendo librerías como:
+Documento de configuración técnica que lista las versiones exactas de las dependencias:
 
 - Flask
+- pdfkit
 - Werkzeug
 - Flask-WTF
-- pdfkit
+
+Esto asegura que el entorno de ejecución sea replicable en cualquier servidor Linux.
 
 ---
 
 ## `templates/layout.html`
 
-Define la estructura base de `Jinja2`, incluyendo:
+Archivo maestro de `Jinja2` que define:
 
-- Navegación principal
-- Manejo de mensajes `flash`
-- Componentes reutilizables del sistema
+- Arquitectura visual global
+- Navegación responsiva
+- Sistema de mensajería interactiva
 
 ---
 
 ## `templates/contract_form.html`
 
-Formulario dinámico encargado de capturar los datos del contrato.
+Formulario interactivo encargado de recopilar los datos del servicio.
 
-Integra validaciones en tiempo real para mejorar la experiencia del usuario y reducir errores de captura.
+Incluye validaciones en el frontend para optimizar la experiencia del usuario antes de la validación final en el servidor.
 
 ---
 
 ## `templates/contract_template.html`
 
-Plantilla optimizada para el renderizado PDF.
+Piedra angular del diseño del documento.
 
-Diseñada para mantener proporciones, márgenes y distribución correcta tanto en formato digital como impreso.
+Es una plantilla HTML optimizada específicamente para el motor de renderizado, asegurando:
+
+- Márgenes correctos
+- Logotipos profesionales
+- Tipografía consistente
+
+En el PDF final.
 
 ---
 
 ## `static/css/style.css`
 
-Hoja de estilos personalizada que implementa el diseño oscuro del sistema y asegura compatibilidad responsiva para dispositivos móviles.
+Contiene la definición de la identidad visual **"Clean Industrial"**.
+
+Utiliza variables CSS y `media queries` para asegurar compatibilidad tanto en dispositivos móviles como en monitores de alta resolución.
 
 ---
 
 ## `static/js/script.js`
 
-Gestiona las interacciones dinámicas del frontend, incluyendo:
+Proporciona interactividad dinámica, permitiendo:
 
-- Cálculo automático de totales
-- Previsualización de datos
-- Validaciones visuales antes del envío
+- Cálculos automáticos
+- Gestión de subtotales
+- Actualización de vistas previas en tiempo real
 
 ---
 
 ## `uploads/`
 
-Directorio destinado a la gestión temporal de logos personalizados.
-
-Incluye protocolos de limpieza automática tras finalizar cada sesión.
+Directorio de almacenamiento temporal gestionado con protocolos de limpieza automática para manejar logotipos personalizados de forma eficiente y segura.
 
 ---
 
-## `wkhtmltopdf_..._amd64.deb`
+## `wkhtmltopdf_0.12.6-2build2_amd64.deb`
 
-Binario incluido manualmente para asegurar la portabilidad del motor de renderizado en entornos Linux y Codespaces, evitando conflictos de repositorios.
+Binario esencial incluido para garantizar que el motor de PDF funcione en cualquier entorno basado en Debian, eliminando la necesidad de instalaciones externas durante la evaluación.
 
 ---
 
-# Instalación y Configuración
+# Guía Técnica de Instalación (Entorno Linux)
 
-Para asegurar el funcionamiento correcto del proyecto, es importante seguir estos pasos en orden.
+Para asegurar un despliegue exitoso, es imperativo seguir este protocolo técnico.
 
-## 1. Navegar al directorio del proyecto
+## 1. Acceder al Directorio
 
 ```bash
 cd ContratoExpress/
@@ -155,7 +168,7 @@ cd ContratoExpress/
 
 ---
 
-## 2. Instalar dependencias de Python
+## 2. Instalar Dependencias de Python
 
 ```bash
 pip install -r requirements.txt
@@ -163,7 +176,7 @@ pip install -r requirements.txt
 
 ---
 
-## 3. Instalar el motor PDF
+## 3. Instalar el Motor de PDF
 
 ```bash
 sudo dpkg -i wkhtmltopdf_0.12.6-2build2_amd64.deb
@@ -171,9 +184,9 @@ sudo dpkg -i wkhtmltopdf_0.12.6-2build2_amd64.deb
 
 ---
 
-## 4. Corregir dependencias del sistema
+## 4. Resolver Dependencias Base (Paso Crítico)
 
-> Paso crucial para evitar errores de instalación.
+Este paso permite que el sistema operativo instale automáticamente las librerías requeridas por el paquete `.deb`.
 
 ```bash
 sudo apt install -f
@@ -181,7 +194,7 @@ sudo apt install -f
 
 ---
 
-## 5. Ejecutar la aplicación
+## 5. Lanzar la Aplicación
 
 ```bash
 flask run
@@ -189,10 +202,12 @@ flask run
 
 ---
 
-# Seguridad y Privacidad
+# Filosofía de Diseño y Privacidad
 
-La arquitectura del sistema se basa en la protección de datos desde el diseño.
+ContratoExpress ha sido diseñado bajo el concepto estético **"Clean Industrial"**.
 
-Las contraseñas se gestionan mediante `hashlib`, las sesiones expiran automáticamente tras periodos de inactividad y se valida el tipo MIME de cada archivo subido para mitigar la ejecución de scripts maliciosos.
+La paleta de zinc y tonos oscuros no responde únicamente a una preferencia visual; también busca reducir la fatiga ocular de trabajadores que utilizan la aplicación en condiciones de iluminación variables.
 
-Este enfoque garantiza que la herramienta sea confiable para el uso profesional diario.
+Además, el sistema respeta la soberanía de datos del usuario, permitiendo la eliminación definitiva de la cuenta y todos sus registros asociados.
+
+Este proyecto refleja un compromiso total con la creación de software robusto, ético y funcional orientado a resolver problemas reales dentro de la comunidad técnica de Chiapas.
