@@ -74,7 +74,7 @@ def validate_contract(data):
         errors.append("Teléfono del proveedor inválido (7-15 dígitos, prefijo + opcional).")
     if not is_valid_phone(phone_c):
         errors.append("Teléfono del cliente inválido (7-15 dígitos, prefijo + opcional).")
-    if len(data.get('service_desc', '')) < 5:
+    if len(data.get('desc_servicio', '')) < 5:
         errors.append("La descripción del servicio es muy corta.")
     email = data.get('email_client', '')
     if email and not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
@@ -953,8 +953,8 @@ cat > templates/form.html << 'EOF'
                 <input type="text" id="standardServiceTitle" name="service_title_std" value="{{ form_data.get('service_title', '') if form_data and form_data.get('service_type') != 'Otros' else '' }}" placeholder="Ej: Mantenimiento de computadora">
             </div>
             <div class="form-group">
-                <label for="service_desc">Descripción Detallada</label>
-                <textarea id="desc_servicio" name="desc_servicio" rows="4" placeholder="Describe exactamente qué servicios realizarás..." required>{{ form_data.get('service_desc', '') if form_data else '' }}</textarea>
+                <label for="desc_servicio">Descripción Detallada</label>
+                <textarea id="desc_servicio" name="desc_servicio" rows="4" placeholder="Describe exactamente qué servicios realizarás..." required>{{ form_data.get('desc_servicio', '') if form_data else '' }}</textarea>
             </div>
             <div class="checkbox-group">
                 <label class="checkbox-label">
