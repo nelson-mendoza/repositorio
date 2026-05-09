@@ -2754,18 +2754,6 @@ document.getElementById('contractForm').addEventListener('submit', function(e) {
 
 // setTimeout desactivado - alertas estáticas para que el usuario las cierre manualmente
 // El siguiente código está comentado intencionalmente:
-/*
-setTimeout(function() {
-    const alerts = document.querySelectorAll('.alert');
-    alerts.forEach(function(alert) {
-        alert.style.transition = 'opacity 0.5s';
-        alert.style.opacity = '0';
-        setTimeout(function() {
-            alert.remove();
-        }, 500);
-    });
-}, 5000);
-*/
 EOF
 
 echo ""
