@@ -1,213 +1,61 @@
-# ContratoExpress: Generador de Contratos para Servicios Simples
+ContratoExpress: Simple Services Contract Generator
 
-#### Video Demo: <INSERT YOUR VIDEO URL HERE>
+Video Demo:
 
----
+Why I Made This [+]: Real Need in Chiapas
 
-# Introducción y Propósito del Proyecto
+I reside in Cacahoatán, Chiapas where technical and manual labor constitutes the local economy. But I discovered a common thread: nearly all electricians, plumbers, mechanics and freelancers solely run "on word of mouth." Well, we are a verbal agreement culture and this leaves us in a place of considerable danger.
 
-ContratoExpress es una solución tecnológica integral diseñada para abordar un vacío legal y administrativo crítico en la región de **Cacahoatán, Chiapas**.
+I have seen other technicians lose money in situations where a client denies paying an agreed amount at the conclusion of a job, or goes even further and requests additional jobs that are not part of the initial quotation with the dirty trick argument: "that was included." I built ContratoExpress, not as a latent academic project for Harvard but rather my weapon to propel an economic justice agenda in my community. The idea was simple: Build a bit of software that enables virtually any worker to record an agreement in under 60 seconds from their phone producing a professional (PDF) document that provides both legal and moral backstop before you ever even pick up one tool.
 
-En esta zona, una parte significativa de la economía depende de trabajadores independientes —como técnicos de soporte, electricistas, plomeros y freelancers creativos— quienes tradicionalmente operan bajo acuerdos verbales. Esta falta de formalización documental suele resultar en una vulnerabilidad extrema para el prestador del servicio, enfrentándose frecuentemente a impagos, malentendidos sobre el alcance del trabajo o la exigencia de tareas adicionales no presupuestadas inicialmente.
+Engineering and Design Choices
 
-Este proyecto surge no solo como un ejercicio académico para el curso CS50x de Harvard, sino como una herramienta de impacto social real. Su objetivo primordial es proporcionar una infraestructura digital intuitiva que permita a los trabajadores documentar términos, condiciones y montos en cuestión de segundos.
+Making PDF with pdfkit vs FPDF — The Technical Conundrum & Details of what has within PDF Engine
 
-Al transformar acuerdos informales en contratos PDF profesionales, ContratoExpress dignifica el trabajo técnico y ofrece una capa de seguridad jurídica necesaria para el desarrollo económico local.
+Deciding how to create the contracts took a lot of time. My first approach I tried using the FPDF library since it is widely used in python world as lightweight and without complex external dependencies. However, I quickly became frustrated. Using FPDF, you are literally working with a Cartesian coordinate system (X, Y) which is painful to program in and made me throw out everything I knew about responsive web design.
 
----
+I ended up choosing pdfkit (a wrapper around wkhtmltopdf). The reason for this choice was to be able to simply consider the contract like a webpage. Since the base of my template was developed using HTML5 and CSS3, we can make sure that the PDF output is exactly what the user sees on screen (WYSIWYG). This presented the problem of how to deal with external binaries on Linux, but I established visually gained flexibility at the cost of managing complications like that.
 
-# Análisis de Decisiones de Ingeniería (Design Choices)
+Security : Manual Building vs Automated Solutions
 
-## El Motor de Renderizado: Evolución hacia `pdfkit`
+As CS50 taught us, security is not something tacked on at the end; it needs to be in the DNA of your code. I could have easily built an account management system with Flask-Login, but I endeavoured to roll something up from scratch so that I really knew what was going on with the data.
 
-Una de las fases más intensas de investigación durante el desarrollo fue la selección del motor para la generación de documentos PDF.
+Password Hashing (hashlib library, SHA-256). I do not simply store the hash; each user generates an independent random salt. This is to avoid the rainbow table attacks and also even if someone would steal the database, original passwords are not readable.
 
-Inicialmente, exploré la librería `FPDF` por su reputación de ligereza; sin embargo, pronto identifiqué limitaciones críticas. Su sistema de diseño basado en coordenadas cartesianas resultaba excesivamente rígido e ineficiente para implementar una interfaz de usuario moderna y responsiva.
+Data Protection: I pioneered the use of manual validations at backend to mitigate the risk against SQL Injection and XSS. I also set the application to make sessions expire after a given timeout before being automatically signed out, which is very important if you are a technician using the application in shared computers or internet café.
 
-Tras realizar diversas pruebas de concepto, opté por `pdfkit`, que funciona como un wrapper para `wkhtmltopdf`. Esta decisión técnica fue estratégica: me permitió utilizar la potencia combinada de HTML5 y CSS3 para el renderizado del documento.
+The Clean Industrial Aesthetic and User Experience
 
-Esto garantiza el principio de "lo que ves es lo que obtienes" (WYSIWYG), asegurando que la previsualización interactiva en el navegador sea una réplica exacta del archivo descargable.
+As the majority of my time is spent in terminal and using Kali Linux, I am absolutely a fan of dark functional interfaces. I didn't want ContratoExpress to feel like a cookie-cutter site, I wanted it to feel like an engineering type product.
 
-Para garantizar la portabilidad absoluta del sistema, incluí el paquete binario `.deb` directamente en el repositorio, eliminando la dependencia de repositorios externos que podrían fallar durante la evaluación o despliegue.
+I adopted the concept of an Clean Industrial with Zinc and Amber color scheme, JetBrains Mono font. Not only about style, but it's a functional decision. Lots of technicians look at their contracts outdoors or in low-light scenarios, and this high-contrast scheme is easier for the eyes and makes things a lot easier to read. I also made sure that it was fully responsive, the form adapts actually nicely to fit both a laptop in an office and a smartphone way out in the middle of a construction site.
 
----
+Project Structure (Modularity)
 
-## Seguridad: Arquitectura de Autenticación desde Cero
+I split the responsibilities down to different files to keep it clean and scalable rather than having a monolithic app. py incomprehensible by anyone:
 
-Siguiendo los principios fundamentales de la ciberseguridad aprendidos en CS50, rechacé el uso de sistemas de autenticación prefabricados o librerías de alto nivel como Flask-Login que ocultan la lógica interna.
+app. py: The orchestrating brain. This is where I am dealing with Flask routing, session logic, and connecting to the PDF engine as well.
 
-Construí manualmente un sistema de gestión de usuarios y sesiones para tener un control granular sobre el flujo de datos.
+rules. py: My custom validation module. I built all of the Regular Expressions (Regex) to validate that emails, phone numbers and amounts were valid before processed. This separates the business logic from the web logic.
 
-Implementé un protocolo de cifrado robusto utilizando la librería `hashlib` para aplicar un hashing **SHA-256** reforzado con una *sal* (`salt`) aleatoria única por cada usuario.
+static/js/script. js: Pure vanilla JavaScript. I used it for dynamic form: totals, subtotals and taxes are calculated on the fly without page reload which gives an impression of fast modern app.
 
-Este enfoque de "defensa en profundidad" asegura que, incluso en el hipotético caso de una brecha en la base de datos SQLite, las credenciales originales permanezcan criptográficamente inaccesibles.
+templates/contract_template. HTML (Mother of PDF) It has been specifically optimized for print styles, so margins and logos will be perfect on A4 and Letter papers.
 
-Adicionalmente, programé validaciones manuales estrictas contra ataques de:
+I am writing the Installation Guide (not to be confused with Headache On Linux)
 
-- Cross-Site Scripting (XSS)
-- Cross-Site Request Forgery (CSRF)
+One of the learning curves was tackling system dependencies. However, in environments such as GitHub Codespaces, pdfkit is not enough because the binary engine is missing. I also added dotNet.Config for making my project a shiny portable version. deb package in the repository.
 
-Garantizando así un entorno seguro para el manejo de información sensible.
+Exact Steps:
 
----
+Python Libraries: pip install -r requirements txt
 
-# Estructura Detallada del Sistema
+Install PDF Engine: sudo dpkg -i wkhtmltopdf_0.12.6-2build2_amd64 deb
 
-Para cumplir con los estándares de complejidad exigidos por Harvard, el proyecto se ha estructurado de forma modular, separando estrictamente la lógica de negocio de la interfaz de usuario.
+The Critical Step: sudo apt install -f This command is required. It took me a few attempts to realize that Linux doesn't install the font and rendering libraries the binary package needs in order for it to work without this.
 
-## `app.py`
+Conclusion and Final Reflection
 
-Es el cerebro orquestador de la aplicación.
+Months of studying CS50x and applying it to a reality I live every day in Chiapas results in ContratoExpress. Some peculiarities were not mentioned in the books, like encoding special characters (the 'ñ' and accents messed up the PDF) and temporary files when dealing with logos.
 
-Gestiona:
-
-- El enrutamiento de Flask
-- El control de sesiones de usuario
-- La comunicación bidireccional entre la persistencia de datos y el motor PDF
-
----
-
-## `rules.py`
-
-Módulo de validación de lógica de negocio altamente especializado.
-
-Utiliza expresiones regulares (`Regex`) avanzadas para auditar la integridad de cada campo ingresado:
-
-- Estructura de correos electrónicos
-- Teléfonos internacionales
-- Consistencia de montos monetarios
-
-Esta separación permite que el código sea escalable y fácil de depurar.
-
----
-
-## `requirements.txt`
-
-Documento de configuración técnica que lista las versiones exactas de las dependencias:
-
-- Flask
-- pdfkit
-- Werkzeug
-- Flask-WTF
-
-Esto asegura que el entorno de ejecución sea replicable en cualquier servidor Linux.
-
----
-
-## `templates/layout.html`
-
-Archivo maestro de `Jinja2` que define:
-
-- Arquitectura visual global
-- Navegación responsiva
-- Sistema de mensajería interactiva
-
----
-
-## `templates/contract_form.html`
-
-Formulario interactivo encargado de recopilar los datos del servicio.
-
-Incluye validaciones en el frontend para optimizar la experiencia del usuario antes de la validación final en el servidor.
-
----
-
-## `templates/contract_template.html`
-
-Piedra angular del diseño del documento.
-
-Es una plantilla HTML optimizada específicamente para el motor de renderizado, asegurando:
-
-- Márgenes correctos
-- Logotipos profesionales
-- Tipografía consistente
-
-En el PDF final.
-
----
-
-## `static/css/style.css`
-
-Contiene la definición de la identidad visual **"Clean Industrial"**.
-
-Utiliza variables CSS y `media queries` para asegurar compatibilidad tanto en dispositivos móviles como en monitores de alta resolución.
-
----
-
-## `static/js/script.js`
-
-Proporciona interactividad dinámica, permitiendo:
-
-- Cálculos automáticos
-- Gestión de subtotales
-- Actualización de vistas previas en tiempo real
-
----
-
-## `uploads/`
-
-Directorio de almacenamiento temporal gestionado con protocolos de limpieza automática para manejar logotipos personalizados de forma eficiente y segura.
-
----
-
-## `wkhtmltopdf_0.12.6-2build2_amd64.deb`
-
-Binario esencial incluido para garantizar que el motor de PDF funcione en cualquier entorno basado en Debian, eliminando la necesidad de instalaciones externas durante la evaluación.
-
----
-
-# Guía Técnica de Instalación (Entorno Linux)
-
-Para asegurar un despliegue exitoso, es imperativo seguir este protocolo técnico.
-
-## 1. Acceder al Directorio
-
-```bash
-cd ContratoExpress/
-```
-
----
-
-## 2. Instalar Dependencias de Python
-
-```bash
-pip install -r requirements.txt
-```
-
----
-
-## 3. Instalar el Motor de PDF
-
-```bash
-sudo dpkg -i wkhtmltopdf_0.12.6-2build2_amd64.deb
-```
-
----
-
-## 4. Resolver Dependencias Base (Paso Crítico)
-
-Este paso permite que el sistema operativo instale automáticamente las librerías requeridas por el paquete `.deb`.
-
-```bash
-sudo apt install -f
-```
-
----
-
-## 5. Lanzar la Aplicación
-
-```bash
-flask run
-```
-
----
-
-# Filosofía de Diseño y Privacidad
-
-ContratoExpress ha sido diseñado bajo el concepto estético **"Clean Industrial"**.
-
-La paleta de zinc y tonos oscuros no responde únicamente a una preferencia visual; también busca reducir la fatiga ocular de trabajadores que utilizan la aplicación en condiciones de iluminación variables.
-
-Además, el sistema respeta la soberanía de datos del usuario, permitiendo la eliminación definitiva de la cuenta y todos sus registros asociados.
-
-Este proyecto refleja un compromiso total con la creación de software robusto, ético y funcional orientado a resolver problemas reales dentro de la comunidad técnica de Chiapas.
+It shows that you do not need bulky frameworks to actually build something useful. I attempted to build a tool that really helps formalize my peoples work, I do have good design and on top of that sql and python basics. Creating this from the ground up empowered me that I could build complex things in software.
