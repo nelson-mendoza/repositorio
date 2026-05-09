@@ -2751,4 +2751,8 @@ document.getElementById('contractForm').addEventListener('submit', function(e) {
         return false;
     }
 });
+EOF
 
+echo ""
+echo "✅ ContratoExpress v3.3 COMPLETO"
+echo "🚀 Ejecuta: cd ContratoExpress && python3 app.py"
