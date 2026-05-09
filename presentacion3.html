@@ -25,13 +25,16 @@
             color: var(--text-main);
         }
 
-        /* Lienzo 16:9 */
+        /* Lienzo 16:9 - Corregido para centrado perfecto */
         .ppt-wrapper {
-            width: 100vw; height: 56.25vw; /* 16:9 ratio */
-            max-width: 177.78vh; max-height: 100vh;
-            margin: auto;
             position: absolute;
-            top: 0; bottom: 0; left: 0; right: 0;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 177.78vh;
+            height: 100vh;
+            max-width: 100vw;
+            max-height: 56.25vw;
             background: var(--bg-slide);
             box-shadow: 0 0 50px rgba(0,0,0,0.5);
         }
@@ -155,8 +158,9 @@
             <h2>Simplificando la formalidad laboral</h2>
             <div class="info-grid">
                 <div>
-                    <p><strong>Presentado por:</strong> [TU NOMBRE]</p>
-                    <p><strong>GitHub:</strong> [TU USUARIO]</p>
+                    <p><strong>Presentado por:</strong> Nelson Mendoza</p>
+                    <p><strong>GitHub:</strong> nelson-mendoza</p>
+                    <p><strong>edX:</strong> mendozanelson</p>
                 </div>
                 <div>
                     <p><strong>Ubicación:</strong> Cacahoatán, Chiapas</p>
@@ -169,33 +173,142 @@
             <div class="slide-header"><h2>Estructura del Sistema</h2></div>
             <div class="content">
                 <div class="content-text">
-                    <p>Arquitectura MVC organizada para escalabilidad y orden:</p>
+                    <p>Arquitectura modular para escalabilidad y mantenimiento:</p>
                     <ul>
-                        <li><strong>Backend:</strong> Lógica central en `app.py` y validaciones en `rules.py`.</li>
-                        <li><strong>Frontend:</strong> 7 plantillas Jinja2 para una experiencia de usuario fluida.</li>
-                        <li><strong>Assets:</strong> Estilos y validaciones dinámicas en carpeta `static`.</li>
+                        <li><strong>Backend:</strong> Lógica central en <code>app.py</code> y validaciones en <code>rules.py</code>.</li>
+                        <li><strong>Frontend:</strong> 7 plantillas Jinja2 para UX fluida.</li>
+                        <li><strong>Assets:</strong> JavaScript puro y CSS industrial en <code>static/</code>.</li>
                     </ul>
                 </div>
                 <div class="tree-container">
 <pre>
 ContratoExpress/
-├── app.py           # Núcleo Flask
-├── rules.py         # DB y Reglas
+├── app.py              # Rutas Flask + Sesiones
+├── rules.py            # Validaciones Regex + DB
 ├── static/
-│   ├── script.js    # UI Interactiva
-│   └── style.css    # Diseño App
-├── templates/       # 7 Vistas HTML
-├── uploads/         # Logos guardados
-└── wkhtmltopdf...deb # Motor PDF
+│   ├── js/script.js    # Cálculos en tiempo real
+│   └── css/style.css   # Diseño Clean Industrial
+├── templates/          # 7 Vistas HTML
+├── uploads/            # Logotipos temporales
+└── *.deb               # wkhtmltopdf engine
 </pre>
                 </div>
             </div>
-            <div class="slide-footer"><span>Estructura de Archivos</span><span>Slide 2</span></div>
+            <div class="slide-footer"><span>Arquitectura Modular</span><span>Slide 2</span></div>
         </div>
 
         <div class="slide slide-title">
             <h1 style="font-size: 4rem;">Demostración del Software</h1>
             <p style="font-size: 1.5rem; opacity: 0.8;">A continuación veremos la aplicación funcionando en tiempo real...</p>
+        </div>
+
+        <div class="slide">
+            <div class="slide-header"><h2>Instalación Paso a Paso</h2></div>
+            <div class="content-text">
+                <p>Configuración completa del entorno Linux:</p>
+                <div class="fields-grid" style="grid-template-columns: 1fr;">
+                    <div class="field-card">
+                        <h3>Paso 1: Dependencias Python</h3>
+                        <p><code>pip install -r requirements.txt</code></p>
+                    </div>
+                    <div class="field-card">
+                        <h3>Paso 2: Motor PDF (wkhtmltopdf)</h3>
+                        <p><code>sudo dpkg -i wkhtmltopdf_0.12.6-2build2_amd64.deb</code></p>
+                    </div>
+                    <div class="field-card">
+                        <h3>Paso 3: Dependencias Críticas</h3>
+                        <p><code>sudo apt install -f</code></p>
+                        <p style="margin-top: 10px; font-size: 0.9rem; color: var(--accent);">⚠️ Este paso resuelve librerías de fuentes requeridas para renderizado PDF en Linux.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-footer"><span>Guía de Instalación</span><span>Slide 4</span></div>
+        </div>
+
+        <div class="slide">
+            <div class="slide-header"><h2>Ejecución de la Aplicación</h2></div>
+            <div class="content">
+                <div class="content-text">
+                    <p>Una vez instaladas las dependencias, iniciar el servidor de desarrollo:</p>
+                    <div class="tree-container" style="flex: 1; margin-top: 20px;">
+<pre>
+$ flask run
+
+ * Serving Flask app 'app'
+ * Debug mode: off
+ * Running on http://127.0.0.1:5000
+ * Press CTRL+C to quit
+</pre>
+                    </div>
+                    <p style="margin-top: 30px;">Accede desde tu navegador y comienza a generar contratos profesionales.</p>
+                </div>
+            </div>
+            <div class="slide-footer"><span>Iniciar Servidor</span><span>Slide 5</span></div>
+        </div>
+
+        <div class="slide">
+            <div class="slide-header"><h2>Seguridad y Protección de Datos</h2></div>
+            <div class="content-text">
+                <p>Arquitectura de seguridad construida desde el núcleo:</p>
+                <ul>
+                    <li><strong>Hash SHA-256 con Salt:</strong> Cada usuario genera un salt aleatorio único antes del hashing.</li>
+                    <li><strong>Protección contra ataques:</strong> Resistente a rainbow tables y credential reuse.</li>
+                    <li><strong>Validaciones backend:</strong> Mitigación de SQL Injection y XSS en todos los endpoints.</li>
+                    <li><strong>Sesiones con expiración:</strong> Cierre automático por inactividad para equipos compartidos.</li>
+                </ul>
+            </div>
+            <div class="slide-footer"><span>Seguridad</span><span>Slide 6</span></div>
+        </div>
+
+        <div class="slide">
+            <div class="slide-header"><h2>Generación de PDFs: pdfkit vs FPDF</h2></div>
+            <div class="content">
+                <div class="content-text">
+                    <p>Decisión arquitectónica crítica para el proyecto:</p>
+                    <ul>
+                        <li><strong>FPDF:</strong> Ligero pero limitado a coordenadas cartesianas (X, Y).</li>
+                        <li><strong>pdfkit + wkhtmltopdf:</strong> Renderizado HTML5/CSS3 completo.</li>
+                        <li><strong>WYSIWYG:</strong> El PDF generado es idéntico a lo que ve el usuario.</li>
+                    </ul>
+                </div>
+                <div class="tree-container" style="flex: 1;">
+<pre>
+Ventajas de pdfkit:
+✓ Diseño responsive
+✓ Tipografías web
+✓ Imágenes integradas
+✓ CSS print media
+✗ Requiere binarios externos
+</pre>
+                </div>
+            </div>
+            <div class="slide-footer"><span>Tecnología PDF</span><span>Slide 7</span></div>
+        </div>
+
+        <div class="slide">
+            <div class="slide-header"><h2>Diseño Clean Industrial</h2></div>
+            <div class="content-text">
+                <p>Estética funcional inspirada en terminales Linux y entornos de desarrollo:</p>
+                <div class="fields-grid">
+                    <div class="field-card">
+                        <h3>Paleta de Colores</h3>
+                        <p>Tonos Zinc y ámbar para alto contraste en exteriores.</p>
+                    </div>
+                    <div class="field-card">
+                        <h3>Tipografía</h3>
+                        <p><code>JetBrains Mono</code> para legibilidad técnica óptima.</p>
+                    </div>
+                    <div class="field-card">
+                        <h3>Responsive</h3>
+                        <p>Adaptable a smartphones, laptops y desktops.</p>
+                    </div>
+                    <div class="field-card">
+                        <h3>UX Real</h3>
+                        <p>Optimizado para lectura en obras y baja iluminación.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-footer"><span>Diseño UI/UX</span><span>Slide 8</span></div>
         </div>
 
         <div class="slide">
@@ -221,22 +334,37 @@ ContratoExpress/
                     </div>
                 </div>
             </div>
-            <div class="slide-footer"><span>Detalles del Formulario</span><span>Slide 4</span></div>
+            <div class="slide-footer"><span>Detalles del Formulario</span><span>Slide 9</span></div>
+        </div>
+
+        <div class="slide">
+            <div class="slide-header"><h2>Retos Técnicos Superados</h2></div>
+            <div class="content-text">
+                <p>Desafíos encontrados durante el desarrollo:</p>
+                <ul>
+                    <li><strong>UTF-8 y caracteres especiales:</strong> Solucionado con encoding correcto en pdfkit.</li>
+                    <li><strong>ñ y vocales acentuadas:</strong> Configuración de fuentes en wkhtmltopdf.</li>
+                    <li><strong>Gestión de archivos temporales:</strong> Limpieza automática de logotipos subidos.</li>
+                    <li><strong>Renderizado Linux inconsistente:</strong> Resuelto con <code>sudo apt install -f</code>.</li>
+                </ul>
+            </div>
+            <div class="slide-footer"><span>Resolución de Problemas</span><span>Slide 10</span></div>
         </div>
 
         <div class="slide">
             <div class="slide-header"><h2>Reflexión Final</h2></div>
             <div class="content-text">
                 <ul>
-                    <li><strong>Impacto Social:</strong> Una herramienta real para la justicia económica en Chiapas.</li>
-                    <li><strong>Reto Técnico:</strong> Dominar la generación de PDFs con soporte UTF-8 y manejo de archivos.</li>
-                    <li><strong>Aprendizaje:</strong> CS50 me enseñó que el software útil no requiere complejidad innecesaria.</li>
+                    <li><strong>Impacto Social:</strong> Justicia económica para trabajadores en Chiapas.</li>
+                    <li><strong>Reto Técnico:</strong> Generación de PDFs profesionales con HTML/CSS.</li>
+                    <li><strong>Aprendizaje CS50:</strong> El software útil no requiere complejidad innecesaria.</li>
+                    <li><strong>Legado:</strong> Herramienta real para formalizar trabajo con dignidad.</li>
                 </ul>
-                <div style="margin-top: 50px; text-align: center; font-weight: 800; font-size: 2rem; color: var(--accent);">
+                <div style="margin-top: 40px; text-align: center; font-weight: 800; font-size: 1.8rem; color: var(--accent);">
                     "This was ContratoExpress, and this was CS50."
                 </div>
             </div>
-            <div class="slide-footer"><span>Conclusión</span><span>Slide 5</span></div>
+            <div class="slide-footer"><span>Conclusión</span><span>Slide 11</span></div>
         </div>
 
     </div>
