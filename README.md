@@ -1,10 +1,10 @@
-# ContratoExpress v3.3: Generador de Contratos Legales Inteligente
+# ContratoExpress: Generador de Contratos para Servicios Simples
 
 #### Video Demo: <INSERT YOUR VIDEO URL HERE>
 
 #### Description:
 
-ContratoExpress v3.3 es mucho más que un simple generador de documentos; es el resultado final de mi viaje a través del curso CS50. Este proyecto nació de una necesidad real: simplificar la creación de contratos legales personalizados para pequeños emprendedores y freelancers que no pueden costear software costoso ni abogados para cada trámite menor. La aplicación web permite a los usuarios registrarse, autenticarse de forma segura y generar contratos profesionales en formato PDF con un nivel de personalización que rara vez se ve en herramientas gratuitas. Desde la selección de múltiples monedas (incluyendo criptomonedas) hasta la personalización completa del estilo visual del documento, cada función fue pensada, codificada y probada por mí, línea por línea.
+ContratoExpress es una aplicación web diseñada para pequeños emprendedores, freelancers y cualquier persona que ofrezca servicios simples y necesite generar contratos básicos de manera rápida y profesional. Este proyecto nació como mi trabajo final para el curso CS50, con el objetivo de ayudar a quienes no pueden costear software costoso ni abogados para cada trámite menor. La aplicación permite a los usuarios registrarse, autenticarse de forma segura y generar contratos en formato PDF con opciones de personalización útiles. Desde la selección de múltiples monedas hasta la personalización del estilo visual del documento, cada función fue implementada pensando en la simplicidad y utilidad práctica.
 
 El núcleo del sistema es una aplicación Flask robusta que maneja toda la lógica del servidor. La seguridad fue mi prioridad número uno desde el día uno. Implementé un sistema de autenticación propio que utiliza hashing SHA-256 con sal aleatoria para las contraseñas, asegurando que, incluso si la base de datos fuera comprometida, las credenciales de los usuarios permanecerían seguras. Además, integré protección CSRF (Cross-Site Request Forgery) en todos los formularios, validación estricta de entradas en el backend para prevenir inyecciones SQL y XSS, y cabeceras HTTP de seguridad para mitigar ataques de clickjacking. No confié en soluciones mágicas; entendí cómo funcionan estos protocolos y los implementé manualmente para tener control total sobre la seguridad de mis usuarios.
 
@@ -14,11 +14,11 @@ La base de datos, construida en SQLite por su ligereza y compatibilidad con ento
 
 El frontend fue desarrollado con HTML5 semántico, CSS3 moderno y JavaScript vainilla para las interacciones dinámicas, evitando depender de frameworks pesados como React o Vue para mantener el proyecto ligero y educativo. Quería demostrar que con las bases sólidas que ofrece CS50, se pueden crear interfaces responsivas y atractivas sin necesidad de abstracciones complejas. La interfaz guía al usuario paso a paso a través de un formulario intuitivo, validando datos en tiempo real (como formatos de teléfono y correos electrónicos) antes de siquiera enviarlos al servidor.
 
-En resumen, ContratoExpress v3.3 representa cientos de horas de codificación, depuración y aprendizaje. Pasé noches enteras luchando con errores de codificación de caracteres en los PDFs, ajustando márgenes para que coincidieran en impresión, y optimizando consultas SQL. Este proyecto no es perfecto, pero es funcional, seguro y, lo más importante, es mío. Es la prueba de que puedo tomar un problema complejo, desglosarlo en partes manejables y construir una solución efectiva desde cero.
+En resumen, este proyecto representa un esfuerzo significativo de aprendizaje y desarrollo. Durante el proceso, enfrenté desafíos técnicos como errores de codificación de caracteres en los PDFs, ajustes de márgenes para impresión y optimización de consultas SQL. El resultado es una aplicación funcional y segura que demuestra mi capacidad para resolver problemas complejos mediante la construcción de soluciones prácticas desde cero.
 
 ---
 
-## 📂 Estructura del Proyecto y Funcionalidad de Archivos
+## Estructura del Proyecto y Funcionalidad de Archivos
 
 El proyecto está organizado meticulosamente para separar concerns y facilitar el mantenimiento:
 
@@ -38,11 +38,11 @@ El proyecto está organizado meticulosamente para separar concerns y facilitar e
 
 ---
 
-## 🚀 Instalación y Configuración
+## Instalación y Configuración
 
 Para ejecutar este proyecto localmente o en un entorno similar a CS50, sigue estos pasos cuidadosamente. He incluido soluciones a problemas comunes que encontré durante el desarrollo.
 
-**Nota importante:** Debido a que el entorno de CS50 y muchos contenedores Linux tienen configuraciones específicas, los repositorios oficiales a veces presentan conflictos de versiones con el motor de renderizado de PDF. Para asegurar que el proyecto funcione "a la primera" sin que pierdas horas debuggeando, he incluido el paquete binario necesario directamente en el repositorio. Créeme, ya pasé por dolores de cabeza con esto y no quiero que pierdas tiempo.
+**Nota importante:** Debido a que el entorno de CS50 y muchos contenedores Linux tienen configuraciones específicas, los repositorios oficiales a veces presentan conflictos de versiones con el motor de renderizado de PDF. Para asegurar que el proyecto funcione correctamente desde el inicio, he incluido el paquete binario necesario directamente en el repositorio.
 
 ### Pasos de Instalación
 
@@ -58,7 +58,7 @@ Para ejecutar este proyecto localmente o en un entorno similar a CS50, sigue est
    ```
 
 3. **Instala el motor de renderizado PDF:**
-   Para que la generación de contratos funcione, es indispensable instalar `wkhtmltopdf`. Usa el paquete `.deb` incluido en la raíz del proyecto para evitar conflictos con los repositorios desactualizados del entorno:
+   Para que la generación de contratos funcione, es indispensable instalar `wkhtmltopdf`. Usa el paquete `.deb` incluido en la raíz del proyecto para evitar conflictos con los repositorios del entorno:
    ```bash
    sudo dpkg -i wkhtmltopdf_0.12.6-2build2_amd64.deb
    ```
@@ -68,21 +68,19 @@ Para ejecutar este proyecto localmente o en un entorno similar a CS50, sigue est
    ```bash
    sudo apt install -f
    ```
-   > **¡No te saltes este paso!** Durante el desarrollo, este fue el comando que salvó mi proyecto. Los repositorios de CS50 Codespaces estaban desactualizados y causaban conflictos. Ejecutar `sudo apt install -f` fuerza al sistema a resolver e instalar las dependencias base necesarias que el paquete `.deb` requiere pero que no pudo encontrar inicialmente. Es una decisión de ingeniería pragmática: priorizar la funcionalidad consistente sobre la pureza teórica de la instalación.
+   > No te saltes este paso. Es necesario para resolver e instalar las dependencias base que el paquete `.deb` requiere.
 
 5. **Ejecuta la aplicación:**
    Una vez completados los pasos anteriores, simplemente ejecuta:
    ```bash
    flask run
    ```
-   Y abre tu navegador en la URL que aparecerá en la terminal (usualmente `http://127.0.0.1:5000` o un enlace web de Codespaces).
-
-> **¿Por qué lo puse así?** Durante el desarrollo, pasé por un "infierno de dependencias" donde `apt` intentaba instalar versiones incompatibles que rompían la generación de PDFs. Al incluir el binario específico y usar el comando de reparación, estoy siendo transparente sobre ese desafío y ahorrándote esa misma frustración a ti o al revisor. Confía en mí, te vas a ahorrar varias horas de frustración siguiendo este orden exacto.
+   Flask te asignará una dirección local y un puerto. Solo haz click en el enlace que aparecerá en el editor VSCode o ábrelo en tu navegador.
 
 ---
 
-## 🔐 Seguridad y Privacidad
+## Seguridad y Privacidad
 
 La seguridad no fue un añadido, fue un requisito desde el diseño. Las contraseñas nunca se guardan en texto plano; se utiliza `hashlib` con salt único por usuario. Las sesiones expiran tras inactividad y todos los formularios están protegidos contra CSRF. Además, la aplicación valida el tipo MIME de los archivos subidos (logos) para evitar la subida de scripts maliciosos, una vulnerabilidad común que investigué y decidí prevenir activamente.
 
-Este proyecto fue construido con esfuerzo, paciencia y mucha curiosidad. Espero que ContratoExpress v3.3 sea tan útil para quien lo use como lo fue para mí construirlo.
+Este proyecto fue construido con esfuerzo, paciencia y mucha curiosidad. Espero que ContratoExpress sea tan útil para quien lo use como lo fue para mí construirlo.
