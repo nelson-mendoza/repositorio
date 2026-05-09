@@ -1,95 +1,213 @@
-ContratoExpress: Generador de Contratos para Servicios Simples
+# ContratoExpress: Generador de Contratos para Servicios Simples
 
-demo de video:
+#### Video Demo: <INSERT YOUR VIDEO URL HERE>
 
-Descripción:
+---
 
-ContratoExpress es una aplicación web para pequeños emprendedores, freelancers y con el único objetivo de ofrecer servicios simples, pero que necesitan crear contratos básicos lo más rápida y profesionalmente posible. Este proyecto surgió porque vi una necesidad real en mi región: los trabajadores independientes, desde electricistas y plomeros hasta pintores y freelancers, sufren impagos o los clientes quieren más servicio del acordado por el mismo precio. Como solución, puedes acordar qué sucede ese día y tener un documento escrito en segundos con ContratoExpress. Con unos pocos clics, tienes un archivo listo para firmar, perfecto si haces esto varias veces cada día. También tienes todo el poder de eliminar tu cuenta cuando quieras.
+# Introducción y Propósito del Proyecto
 
-Autenticación y registro seguros con generación de contratos en PDF: opciones básicas y cierto nivel de personalización para atraer a una audiencia constante orientada a la velocidad, junto con otra que valora la profesionalidad o el detalle. Además de los contratos de servicio, es perfecto para emitir recibos de pago; si no quieres dejar una sección de firmas, simplemente bastaba con indicar lo que se pagó y contar con un registro funcionalidad. El diseño en sí es bastante hermoso: con un tono oscuro y una designación, los colores contrastan bien, por lo que resulta agradable a la vista. Tiene, en particular, texto brillante sobre negro optimizado, sobre un fondo negro, para la máxima nitidez y comodidad al visualizarlo.
+ContratoExpress es una solución tecnológica integral diseñada para abordar un vacío legal y administrativo crítico en la región de **Cacahoatán, Chiapas**.
 
-Este proyecto se basa en Flask para el backend y en HTML5, CSS3, Vanilla JS para el frontend. Esta es una buena oportunidad para explicar por qué esta elección, porque fue el stack que me permitió aprender con más profundidad estas habilidades en lugar de empezar desde cero con otro framework en CS50. Y para mí, la seguridad fue lo primero desde el primer día. Para ello, tuve que crear mi propio sistema de autenticación implementando hashing SHA-256 con sales aleatorias para las contraseñas, de modo que incluso si la base de datos se viera comprometida, las credenciales de los usuarios permanecieran seguras. También incorporé protección CSRF (Cross-Site Request Forgery) a todos los formularios, apliqué validación de entradas en el nivel del backend para evitar inyecciones SQL y XSS, y añadí cabeceras HTTP seguras para prevenir ataques de clickjacking. Así que las soluciones mágicas no cuentan; sé cómo funcionan estos protocolos a nivel básico y los implementé todos correctamente, para que estuviera completamente en control de la seguridad de mis usuarios.
+En esta zona, una parte significativa de la economía depende de trabajadores independientes —como técnicos de soporte, electricistas, plomeros y freelancers creativos— quienes tradicionalmente operan bajo acuerdos verbales. Esta falta de formalización documental suele resultar en una vulnerabilidad extrema para el prestador del servicio, enfrentándose frecuentemente a impagos, malentendidos sobre el alcance del trabajo o la exigencia de tareas adicionales no presupuestadas inicialmente.
 
-De las primeras características de las que me siento más orgulloso está el motor de generación de PDF. Mi debate me estaba atormentando mucho al inicio, para las primeras bibliotecas que debía usar. También probé FPDF, que es más sencillo de configurar y puede funcionar hasta el nivel de milímetros con cada descarga, pero está basado en coordenadas y no tiene soporte para CSS, lo que me privaría de los beneficios estéticos de ver exactamente lo que había diseñado, así que decidí no usarlo. Por último, pero no menos importante, decidí ir con pdfkit (en realidad un envoltorio para wkhtmltopdf), ya que me permitió maquetar los contratos en diseño HTML y CSS, algo con lo que estaba lo bastante familiarizado porque conocía ambas tecnologías de memoria. Esta decisión no solo ayudó a acelerar el desarrollo, sino que también les dio a los usuarios una vista previa perfecta de cómo se vería su documento antes de descargarlo. Pero esta decisión introdujo un gran desafío técnico: depender de un binario externo que no siempre está disponible o que puede haber conflictos entre versiones instaladas de wkhtmltopdf en distintos entornos de Linux, especialmente en GitHub Codespaces. Además, esto nos ha enseñado a desplegar nuestro código y las necesidades de portabilidad del software, llegando hasta las dependencias del sistema más allá de Python.
+Este proyecto surge no solo como un ejercicio académico para el curso CS50x de Harvard, sino como una herramienta de impacto social real. Su objetivo primordial es proporcionar una infraestructura digital intuitiva que permita a los trabajadores documentar términos, condiciones y montos en cuestión de segundos.
 
-Esto está diseñado para ser ligero y sin servidor (serverless), por lo que utiliza una base de datos SQLite que consta de dos tablas principales: la tabla users y la tabla contracts. Esto se creó para que fuera escalable. Cada contrato individual contiene tanto su texto como las preferencias de estilo (fuente, color, moneda) y la fecha de creación, para que los usuarios puedan generar sus documentos cuando quieran. La gestión segura de sesiones en el servidor significa que los usuarios solo tienen acceso a sus propios datos.
+Al transformar acuerdos informales en contratos PDF profesionales, ContratoExpress dignifica el trabajo técnico y ofrece una capa de seguridad jurídica necesaria para el desarrollo económico local.
 
-El frontend utilizó también HTML5 semántico para la estructura, CSS3 moderno y JavaScript vanilla para las interacciones dinámicas (evitando frameworks pesados como React o Vue para mantener el proyecto ligero y educativo). Quería dejar claro, con las firmes bases de CS50 bajo tus pies, que puedes construir interfaces hermosas y responsivas sin abstracciones complejas. La interfaz guía al usuario paso a paso mediante un formulario intuitivo que realiza validaciones de datos en el frontend (por ejemplo, asegurándose de que el formato del teléfono y del correo electrónico sea correcto) antes de siquiera enviarlo al servidor.
+---
 
-Para resumir, este es un proyecto centrado en mucho aprendizaje y desarrollo. En el camino surgieron algunas complicaciones técnicas debido a discrepancias en la codificación de caracteres de PDF, ajustes del margen de impresión y optimización de consultas SQL. En resumen, obtienes una aplicación funcional y segura que demuestra lo que puedo hacer: resolver problemas difíciles creando algo útil, desde cero.
+# Análisis de Decisiones de Ingeniería (Design Choices)
 
-Estructura del Proyecto y Archivos en Funcionalidad
+## El Motor de Renderizado: Evolución hacia `pdfkit`
 
-Este proyecto está bien estructurado para separar responsabilidades y mejorar el mantenimiento.
+Una de las fases más intensas de investigación durante el desarrollo fue la selección del motor para la generación de documentos PDF.
 
-app. py**: Aquí es donde se ejecuta la aplicación. Incluye todas las rutas de Flask, la lógica de autenticación, el manejo de sesiones, las validaciones de formularios y tu punto de entrada principal para generar PDFs. Aquí es donde interactúan la base de datos, las plantillas y el motor de renderizado.
+Inicialmente, exploré la librería `FPDF` por su reputación de ligereza; sin embargo, pronto identifiqué limitaciones críticas. Su sistema de diseño basado en coordenadas cartesianas resultaba excesivamente rígido e ineficiente para implementar una interfaz de usuario moderna y responsiva.
 
-rules. py**: mi módulo personalizado que escribí para centralizar todas las utilidades relacionadas con validaciones y la base de datos. Incluye expresiones regulares para validar números de teléfono internacionales, correos electrónicos y importes de dinero, manteniendo app. py limpio y legible.
+Tras realizar diversas pruebas de concepto, opté por `pdfkit`, que funciona como un wrapper para `wkhtmltopdf`. Esta decisión técnica fue estratégica: me permitió utilizar la potencia combinada de HTML5 y CSS3 para el renderizado del documento.
 
-requirements. txt**: Especifica todas las dependencias de Python necesarias (Flask, Werkzeug, Flask-WTF, pdfkit — Oubustits) para una replicación rápida y sencilla del entorno virtual.
+Esto garantiza el principio de "lo que ves es lo que obtienes" (WYSIWYG), asegurando que la previsualización interactiva en el navegador sea una réplica exacta del archivo descargable.
 
-templates/**: directorio con todos los archivos HTML renderizados por Jinja2.
+Para garantizar la portabilidad absoluta del sistema, incluí el paquete binario `.deb` directamente en el repositorio, eliminando la dependencia de repositorios externos que podrían fallar durante la evaluación o despliegue.
 
-layout. base.
+---
 
-login. html / register. html:
+## Seguridad: Arquitectura de Autenticación desde Cero
 
-contract_form. html: La plantilla inicial para crear un contrato, con campos dinámicos
+Siguiendo los principios fundamentales de la ciberseguridad aprendidos en CS50, rechacé el uso de sistemas de autenticación prefabricados o librerías de alto nivel como Flask-Login que ocultan la lógica interna.
 
-contract_template. html`: La plantilla HTML exacta que renderizas para generar un PDF, con estilos tanto para el navegador como para la página impresa.
+Construí manualmente un sistema de gestión de usuarios y sesiones para tener un control granular sobre el flujo de datos.
 
-static/**: Aloja recursos estáticos.
+Implementé un protocolo de cifrado robusto utilizando la librería `hashlib` para aplicar un hashing **SHA-256** reforzado con una *sal* (`salt`) aleatoria única por cada usuario.
 
-css/style. css: Una hoja de estilos personalizada (CSS) que aporta la identidad visual de tu aplicación, integrando un diseño responsive para móviles.
+Este enfoque de "defensa en profundidad" asegura que, incluso en el hipotético caso de una brecha en la base de datos SQLite, las credenciales originales permanezcan criptográficamente inaccesibles.
 
-js/script. js: Para la lógica local (actualizaciones dinámicas del total; validación inmediata en los campos del formulario antes de enviar).
+Adicionalmente, programé validaciones manuales estrictas contra ataques de:
 
-uploads/**: Directorio temporal para logotipos subidos por los usuarios durante una sesión, que debe limpiarse al finalizar.
+- Cross-Site Scripting (XSS)
+- Cross-Site Request Forgery (CSRF)
 
-wkhtmltopdf_0.12.6-2build2_amd64. deb`**: Un paquete binario agregado manualmente para asegurar la compatibilidad en el entorno de evaluación; esto ayuda a usar un repositorio actualizado que evita cualquier error.
+Garantizando así un entorno seguro para el manejo de información sensible.
 
-Instalación y Configuración
+---
 
-Sigue estas instrucciones paso a paso para poner este proyecto en funcionamiento localmente, o en un entorno cercano a CS50. Aquí tienes algunas soluciones a problemas con los que a menudo me encontré durante el proceso de desarrollo.
+# Estructura Detallada del Sistema
 
-Nota: Los repositorios oficiales a veces crean conflictos de versiones con el motor de renderizado de PDF en el entorno de CS50 y en varios contenedores de Linux. Para asegurar que el proyecto funcione desde la primera ejecución, adjunté directamente en el repositorio el paquete binario necesario.
+Para cumplir con los estándares de complejidad exigidos por Harvard, el proyecto se ha estructurado de forma modular, separando estrictamente la lógica de negocio de la interfaz de usuario.
 
-Pasos de instalación
+## `app.py`
 
-Navega a la carpeta del proyecto:
+Es el cerebro orquestador de la aplicación.
 
+Gestiona:
+
+- El enrutamiento de Flask
+- El control de sesiones de usuario
+- La comunicación bidireccional entre la persistencia de datos y el motor PDF
+
+---
+
+## `rules.py`
+
+Módulo de validación de lógica de negocio altamente especializado.
+
+Utiliza expresiones regulares (`Regex`) avanzadas para auditar la integridad de cada campo ingresado:
+
+- Estructura de correos electrónicos
+- Teléfonos internacionales
+- Consistencia de montos monetarios
+
+Esta separación permite que el código sea escalable y fácil de depurar.
+
+---
+
+## `requirements.txt`
+
+Documento de configuración técnica que lista las versiones exactas de las dependencias:
+
+- Flask
+- pdfkit
+- Werkzeug
+- Flask-WTF
+
+Esto asegura que el entorno de ejecución sea replicable en cualquier servidor Linux.
+
+---
+
+## `templates/layout.html`
+
+Archivo maestro de `Jinja2` que define:
+
+- Arquitectura visual global
+- Navegación responsiva
+- Sistema de mensajería interactiva
+
+---
+
+## `templates/contract_form.html`
+
+Formulario interactivo encargado de recopilar los datos del servicio.
+
+Incluye validaciones en el frontend para optimizar la experiencia del usuario antes de la validación final en el servidor.
+
+---
+
+## `templates/contract_template.html`
+
+Piedra angular del diseño del documento.
+
+Es una plantilla HTML optimizada específicamente para el motor de renderizado, asegurando:
+
+- Márgenes correctos
+- Logotipos profesionales
+- Tipografía consistente
+
+En el PDF final.
+
+---
+
+## `static/css/style.css`
+
+Contiene la definición de la identidad visual **"Clean Industrial"**.
+
+Utiliza variables CSS y `media queries` para asegurar compatibilidad tanto en dispositivos móviles como en monitores de alta resolución.
+
+---
+
+## `static/js/script.js`
+
+Proporciona interactividad dinámica, permitiendo:
+
+- Cálculos automáticos
+- Gestión de subtotales
+- Actualización de vistas previas en tiempo real
+
+---
+
+## `uploads/`
+
+Directorio de almacenamiento temporal gestionado con protocolos de limpieza automática para manejar logotipos personalizados de forma eficiente y segura.
+
+---
+
+## `wkhtmltopdf_0.12.6-2build2_amd64.deb`
+
+Binario esencial incluido para garantizar que el motor de PDF funcione en cualquier entorno basado en Debian, eliminando la necesidad de instalaciones externas durante la evaluación.
+
+---
+
+# Guía Técnica de Instalación (Entorno Linux)
+
+Para asegurar un despliegue exitoso, es imperativo seguir este protocolo técnico.
+
+## 1. Acceder al Directorio
+
+```bash
 cd ContratoExpress/
+```
 
-Instala las dependencias de Python:
+---
 
-Lo único que necesitas hacer para eso es instalar primero las bibliotecas necesarias de Flask y manejo de formularios:
+## 2. Instalar Dependencias de Python
 
-pip install -r requirements. txt
+```bash
+pip install -r requirements.txt
+```
 
-Instala el motor de renderizado de PDF:
+---
 
-wkhtmltopdf es necesario para que funcione la generación de contratos. Usa el paquete . debian/nodejs/deb incluido desde la raíz del proyecto para evitar conflictos con los repositorios del entorno:
+## 3. Instalar el Motor de PDF
 
-sudo dpkg -i wkhtmltopdf_0.12.6-2build2_amd64. deb
+```bash
+sudo dpkg -i wkhtmltopdf_0.12.6-2build2_amd64.deb
+```
 
-Corrige dependencias rotas (paso crucial):
+---
 
-Este comando se ejecutará para resolver automáticamente otras dependencias que queden sin resolver después de la instalación manual del paquete.
+## 4. Resolver Dependencias Base (Paso Crítico)
 
+Este paso permite que el sistema operativo instale automáticamente las librerías requeridas por el paquete `.deb`.
+
+```bash
 sudo apt install -f
+```
 
-No te saltes este paso. Luego necesitas cumplir con las dependencias base para que pueda tomar e instalar el . deb que requiere.
+---
 
-Ejecuta la aplicación:
+## 5. Lanzar la Aplicación
 
-Después de eso, completa los primeros pasos y simplemente ejecuta:
-
+```bash
 flask run
+```
 
-Flask se enlazará a una dirección local y a un puerto. Luego, simplemente haz clic en el enlace que aparece en el editor de VSCode o ábrelo en el navegador.
+---
 
-Seguridad y Privacidad
+# Filosofía de Diseño y Privacidad
 
-La seguridad no era una opción adicional, era un requisito de diseño. Pero nunca contraseñas en texto plano; usas hashlib, que produce una cadena hash y, en cada ejecución, genera un salt único por usuario. Las sesiones tienen caducidad por inactividad y todos los formularios incluyen protección contra CSRF. La aplicación también verifica el tipo MIME de los archivos cargados (logotipos) como protección para evitar la ejecución de scripts (una vulnerabilidad común que investigué personalmente y contra la que me protegí de forma proactiva).
+ContratoExpress ha sido diseñado bajo el concepto estético **"Clean Industrial"**.
 
-Este proyecto fue uno de arduo trabajo, perseverancia y pura curiosidad. Realmente espero que ContratoExpress sea tan valioso para quien lo use.
+La paleta de zinc y tonos oscuros no responde únicamente a una preferencia visual; también busca reducir la fatiga ocular de trabajadores que utilizan la aplicación en condiciones de iluminación variables.
+
+Además, el sistema respeta la soberanía de datos del usuario, permitiendo la eliminación definitiva de la cuenta y todos sus registros asociados.
+
+Este proyecto refleja un compromiso total con la creación de software robusto, ético y funcional orientado a resolver problemas reales dentro de la comunidad técnica de Chiapas.
