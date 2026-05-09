@@ -1,6 +1,5 @@
 #!/bin/bash
 # ContratoExpress v3.3 - CS50 Final Project
-# Three weeks of iterative development and testing
 echo "🚀 Starting ContratoExpress setup..."
 
 mkdir -p ContratoExpress/{templates,static,uploads}
@@ -33,16 +32,13 @@ from werkzeug.security import generate_password_hash, check_password_hash
 DATABASE = 'contracts.db'
 
 def get_db():
-# Open DB connection
     conn = sqlite3.connect(DATABASE)
     conn.execute("PRAGMA foreign_keys = ON")
     conn.row_factory = sqlite3.Row
     return conn
 
 def validate_contract(data):
-    # Centralized validation logic for easier maintenance and debugging
     errors = []
-    # Basic field validations
     if len(data.get('provider_name', '')) < 3:
         errors.append("Provider name too short.")
     if len(data.get('client_name', '')) < 3:
@@ -51,11 +47,8 @@ def validate_contract(data):
         errors.append("City of issuance required.")
     def clean_phone(phone):
         phone = phone.strip()
-        # Check if starts with +
         has_plus = phone.startswith('+')
-        # Remove all non-digit characters except +
         cleaned = re.sub(r'[^\d]', '', phone)
-        # Add back the + if it was present
         if has_plus and not cleaned.startswith('+'):
             cleaned = '+' + cleaned
         return cleaned
@@ -63,19 +56,16 @@ def validate_contract(data):
     phone_p = clean_phone(data.get('provider_phone', ''))
     phone_c = clean_phone(data.get('client_phone', ''))
     
-    # Validate phone: allow + at start, then digits only
     # Minimum 7 digits (excluding +), maximum 15 digits (international standard)
     def is_valid_phone(phone):
         if not phone:
             return False
-        # Remove + for digit count
         digits_only = phone.replace('+', '')
         if not digits_only.isdigit():
             return False
         digit_count = len(digits_only)
         if digit_count < 7 or digit_count > 15:
             return False
-        # If has +, it must be at the start
         if '+' in phone and not phone.startswith('+'):
             return False
         return True
@@ -101,7 +91,6 @@ def validate_contract(data):
     except (ValueError, TypeError):
         errors.append("Amount error: ensure valid numbers.")
     try:
-# Deadline cannot be in the past
         deadline_str = data.get('deadline')
         if not deadline_str:
             errors.append("Deadline date required.")
@@ -115,7 +104,6 @@ def validate_contract(data):
         errors.append("Materials details required when materials are included.")
     if data.get('payment_method') == 'transfer' and not data.get('bank_details'):
         errors.append("Bank details required for transfer payment.")
-# Signature names required only when signature block is enabled
     if data.get('include_signatures') == 'on':
         if not data.get('sig_provider_name', '').strip():
             errors.append("Provider signature name required.")
@@ -130,7 +118,6 @@ def register_user(username, password):
     if existing:
         conn.close()
         return False, "Username already exists."
-# Hash passwords before storing
     password_hash = generate_password_hash(password)
     try:
         cursor.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", (username, password_hash))
@@ -161,17 +148,13 @@ import os, time, functools, sqlite3, io
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'cs50-dev-secret-key-change-in-prod')
-# Development fallback key (change in production)
 app.config['WTF_CSRF_SSL_STRICT'] = False
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-# Configure upload directory
 app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024
-# Limit upload size to 2MB
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-# CSRF protection enabled after extensive debugging
 csrf = CSRFProtect(app)
 
 def init_db():
@@ -186,7 +169,6 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
-    # Main contracts table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS contracts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -238,8 +220,6 @@ init_db()
 def login_required(f):
     @functools.wraps(f)
     def decorated_function(*args, **kwargs):
-# Redirect if user not authenticated
-# Quick authentication check
         if 'user_id' not in session:
             return redirect(url_for('login'))
         return f(*args, **kwargs)
@@ -247,17 +227,14 @@ def login_required(f):
 
 @app.after_request
 def add_security_headers(response):
-# Security headers for protection
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'SAMEORIGIN'
     response.headers['X-XSS-Protection'] = '1; mode=block'
     return response
 
 def allowed_file(filename):
-# Restrict to image file extensions only
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# MIME type validation to prevent malicious file uploads
 def validate_image_mime(file):
     file.seek(0)
     header = file.read(8)
@@ -268,13 +245,11 @@ def validate_image_mime(file):
 
 @app.route('/')
 def index():
-# Logged users go to dashboard
     if 'user_id' in session:
         return render_template('dashboard.html')
     return redirect(url_for('login'))
 
 @app.route('/register', methods=['GET', 'POST'])
-# Signup route
 def register():
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
@@ -307,19 +282,15 @@ def register():
     return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
-# Login route
 def login():
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '')
         
         try:
-# Password verification using stored hash
             user_id = login_user(username, password)
             if user_id:
-# Reset old session data
                 session.clear()
-# Set session variable
                 session['user_id'] = user_id
                 session['username'] = username
                 return redirect(url_for('index'))
@@ -339,7 +310,6 @@ def logout():
 @app.route('/delete_account', methods=['POST'])
 @login_required
 def delete_account():
-# Delete user data + uploaded logos
     conn = get_db()
     cursor = conn.cursor()
     logos = [row[0] for row in cursor.execute("SELECT provider_logo FROM contracts WHERE user_id = ? AND provider_logo IS NOT NULL", (session['user_id'],)).fetchall()]
@@ -362,12 +332,6 @@ def delete_account():
 @login_required
 def new_contract():
     if request.method == 'POST':
-# Form validation and data processing
-# This route gathers form data, validates it, and writes the final contract to SQLite.
-        # Integrity check: Provider cannot be the same as Client
-        # Prevents contracts where provider and client are identical
-        # Added after initial testing revealed edge cases
-# Avoid contracts where provider and client are literally the same person
         nombre_prestador = request.form.get('provider_name', '').strip().lower()
         nombre_cliente = request.form.get('client_name', '').strip().lower()
         telefono_prestador = request.form.get('provider_phone', '').strip()
@@ -383,7 +347,6 @@ def new_contract():
         
         # Determine currency symbol
         tipo_moneda = request.form.get('tipo_moneda', 'pesos')
-# Currency symbol for PDF
         simbolo_moneda = '$'
         
         if tipo_moneda == 'usd':
@@ -415,12 +378,8 @@ def new_contract():
         
         logo_filename = None
         if 'logo' in request.files:
-# Optional logo upload
             file = request.files['logo']
-# File extension alone is not enough
-# Check extension first
             if file and file.filename != '' and allowed_file(file.filename):
-# Check image header bytes
                 if validate_image_mime(file):
                     ext = file.filename.rsplit('.', 1)[1].lower()
                     logo_filename = f"logo_{session['user_id']}_{int(time.time())}.{ext}"
@@ -435,7 +394,6 @@ def new_contract():
                 flash(e, "error")
             return render_template('form.html', form_data=request.form.to_dict(flat=True))
 
-# Custom service name
         if request.form.get('service_type') == 'Otros':
             service_title = request.form.get('service_title_custom', '').strip()
         else:
@@ -447,7 +405,6 @@ def new_contract():
 
         payment_structure = request.form.get('payment_structure')
         try:
-# HTML forms send strings
             total = float(request.form.get('total_amount') or 0)
         except (ValueError, TypeError):
             total = 0.0
@@ -456,15 +413,12 @@ def new_contract():
         remaining = 0.0
         if payment_structure == 'advance':
             try:
-# Forms send numbers as text
                 advance = float(request.form.get('advance_amount') or 0)
             except (ValueError, TypeError):
                 advance = 0.0
-# Calculate remaining payment automatically
             remaining = total - advance
 
         penalty = 0.0
-# Only apply discount if provided
         if request.form.get('apply_penalty') == '1' and request.form.get('payment_timing') == 'after':
             try:
                 penalty = float(request.form.get('penalty_rate') or 0)
@@ -474,7 +428,6 @@ def new_contract():
         conn = get_db()
         cursor = conn.cursor()
         try:
-            # Save to DB
             cursor.execute('''
                 INSERT INTO contracts (
                     user_id, city_location, provider_name, provider_phone, provider_logo,
@@ -578,24 +531,19 @@ def descargar_pdf(contract_id):
         flash("Contract not found.", "error")
         return redirect(url_for('history'))
     
-    # Convert row to dictionary
     contract_data = dict(contract)
     
     try:
-        # Read CSS file to inject into HTML
         css_path = os.path.join(os.path.dirname(__file__), 'static', 'style.css')
         with open(css_path, 'r', encoding='utf-8') as f:
             css_content = f.read()
         
-        # Build absolute URL for logo if exists (for pdfkit)
         logo_url = ''
         if contract_data.get('provider_logo'):
             logo_url = 'file://' + os.path.join(UPLOAD_FOLDER, contract_data['provider_logo'])
         
-        # Render HTML template with contract data
         html = render_template('pdf_view.html', contract=contract_data, logo_url=logo_url)
         
-        # Inject CSS into HTML before converting to PDF
         html_with_css = f"""
         <!DOCTYPE html>
         <html lang="es">
@@ -611,7 +559,6 @@ def descargar_pdf(contract_id):
         </html>
         """
         
-        # Configure pdfkit options for A4 with reduced margins to fit on one page
         options = {
             'page-size': 'A4',
             'margin-top': '10mm',
@@ -625,7 +572,6 @@ def descargar_pdf(contract_id):
             'print-media-type': ''
         }
         
-        # Generate PDF from HTML
         pdf = pdfkit.from_string(html_with_css, False, options=options)
         
         pdf_buffer = io.BytesIO(pdf)
@@ -643,7 +589,6 @@ def descargar_pdf(contract_id):
         return redirect(url_for('view_contract', contract_id=contract_id))
 EOF
 
-# template base
 cat > templates/base.html << 'EOF'
 <!DOCTYPE html>
 <html lang="es">
