@@ -170,7 +170,7 @@ To solve this portability issue, I included the `.deb` package directly inside t
 ## 1. Install Python Dependencies
 
 ```bash
-pip install -r requirements.txt
+cd ContratoExpress && pip install -r requirements.txt
 ```
 
 ---
@@ -178,7 +178,7 @@ pip install -r requirements.txt
 ## 2. Install the PDF Engine
 
 ```bash
-sudo dpkg -i wkhtmltopdf_0.12.6-2build2_amd64.deb
+sudo dpkg -i vendor/wkhtmltopdf_0.12.6-2build2_amd64.deb
 ```
 
 ---
